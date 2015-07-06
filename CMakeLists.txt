@@ -9,6 +9,12 @@ find_package(catkin REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
+catkin_package(
+#  INCLUDE_DIRS include
+#  LIBRARIES action_interface
+  CATKIN_DEPENDS rosplan_dispatch_msgs
+#  DEPENDS system_lib
+)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -75,12 +81,7 @@ catkin_python_setup()
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES action_interface
-  CATKIN_DEPENDS rosplan_dispatch_msgs
-#  DEPENDS system_lib
-)
+
 
 ###########
 ## Build ##
@@ -113,7 +114,8 @@ catkin_package(
 
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
-
+install(DIRECTORY src
+            DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 
