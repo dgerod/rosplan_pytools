@@ -9,7 +9,7 @@ import rospy
 
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
 
-from utils import keyval_to_dict, dict_to_keyval
+from .utils import keyval_to_dict, dict_to_keyval
 
 func_actions = {}
 ids = {}
@@ -32,12 +32,13 @@ def start_actions(dispatch_topic_name=None, feedback_topic_name=None):
                                            msg.dispatch_time,
                                            feedback)
                 ids[msg.action_id] = action
-                action.start(duration=msg.duration,
-                             **keyval_to_dict(msg.parameters))
+                action.start(**keyval_to_dict(msg.parameters))
                 action.report_success()
             except Exception as e:
                 rospy.logwarn("Action '%s' failed. %s" % (msg.name, e))
-                action.report_failed()
+                feedback.publish(ActionFeedback(msg.action_id,
+                                                "action failed",
+                                                dict_to_keyval(None)))
         elif msg.name == 'cancel_action':
             if msg.action_id in ids:
                 ids[msg.action_id].cancel()
