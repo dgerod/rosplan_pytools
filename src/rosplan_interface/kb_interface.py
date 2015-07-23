@@ -94,16 +94,20 @@ def get_instance(type_name, item_name, return_type=None):
     return db.query_named('%s__%s' % (type_name, item_name), return_type)
 
 
+def gen_predicate(type_name, **kwargs):
+    return KnowledgeItem(KB_ITEM_FACT,
+                         "", "",
+                         type_name,
+                         dict_to_keyval(kwargs),
+                         0.0)
+
+
 def add_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_ADD,
-        KnowledgeItem(KB_ITEM_FACT,
-                      "", "",
-                      type_name,
-                      dict_to_keyval(kwargs),
-                      0.0))
+        gen_predicate(type_name, **kwargs))
 
 
 def rm_instance(type_name, item_name):
@@ -131,11 +135,7 @@ def rm_predicate(type_name, **kwargs):
         return services['update_knowledge_base_srv'](KB_UPDATE_RM, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM,
-        KnowledgeItem(KB_ITEM_FACT,
-                      "", "",
-                      type_name,
-                      dict_to_keyval(kwargs),
-                      0.0))
+        gen_predicate(type_name, **kwargs))
 
 
 def add_goal(type_name, **kwargs):
@@ -143,11 +143,7 @@ def add_goal(type_name, **kwargs):
         return services['update_knowledge_base_srv'](KB_UPDATE_GOAL, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_GOAL,
-        KnowledgeItem(KB_ITEM_FACT,
-                      "", "",
-                      type_name,
-                      dict_to_keyval(kwargs),
-                      0.0))
+        gen_predicate(type_name, **kwargs))
 
 
 def rm_goal(type_name, **kwargs):
@@ -156,11 +152,7 @@ def rm_goal(type_name, **kwargs):
                                                      type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM_GOAL,
-        KnowledgeItem(KB_ITEM_FACT,
-                      "", "",
-                      type_name,
-                      dict_to_keyval(kwargs),
-                      0.0))
+        gen_predicate(type_name, **kwargs))
 
 
 def list_goals():
