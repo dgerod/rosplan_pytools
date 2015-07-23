@@ -5,9 +5,10 @@ from .action_interface import * # noqa
 from .utils import * # noqa
 from .kb_interface import * # noqa
 from .dispatch_interface import * # noqa
+import rospy
 
 
-def init_rosplan():
+def init_rosplan(block=False):
     """
     Initialize all the things!!
 
@@ -23,3 +24,5 @@ def init_rosplan():
     start_actions()
     init_kb()
     init_dispatch()
+    if block:
+        rospy.spin()

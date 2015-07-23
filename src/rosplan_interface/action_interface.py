@@ -44,7 +44,9 @@ def action_reciever(msg):
             ids[msg.action_id].resume()
 
 
-def start_actions(dispatch_topic_name=None, feedback_topic_name=None):
+def start_actions(dispatch_topic_name=None,
+                  feedback_topic_name=None,
+                  block=False):
     global feedback
     dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
     feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
@@ -56,6 +58,8 @@ def start_actions(dispatch_topic_name=None, feedback_topic_name=None):
                      ActionDispatch,
                      action_reciever)
     rospy.loginfo("Started listening for planner actions")
+    if block:
+        rospy.spin()
 
 
 class Action(object):
