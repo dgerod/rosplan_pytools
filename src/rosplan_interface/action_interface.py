@@ -6,42 +6,52 @@ Makes it easy to listen for actions and send feedback
 
 import inspect
 import rospy
-
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
 
 from .utils import keyval_to_dict, dict_to_keyval
 
 func_actions = {}
 ids = {}
+feedback = None
+
+
+def action_reciever(msg):
+    actions = {}
+    for act in Action.__subclasses__():
+        actions[act.name or act.__name__] = act
+    if msg.name in actions:
+        try:
+            action = actions[msg.name](msg.action_id,
+                                       msg.dispatch_time,
+                                       feedback,
+                                       keyval_to_dict(msg.parameters))
+            ids[msg.action_id] = action
+            action.start(**keyval_to_dict(msg.parameters))
+            action.report_success()
+        except Exception as e:
+            rospy.logwarn("Action '%s' failed." % msg.name, exc_info=1)
+            feedback.publish(ActionFeedback(msg.action_id,
+                                            "action failed",
+                                            dict_to_keyval(None)))
+    elif msg.name == 'cancel_action':
+        if msg.action_id in ids:
+            ids[msg.action_id].cancel()
+    elif msg.name == 'pause_action':
+        if msg.action_id in ids:
+            ids[msg.action_id].pause()
+    elif msg.name == 'resume_action':
+        if msg.action_id in ids:
+            ids[msg.action_id].resume()
 
 
 def start_actions(dispatch_topic_name=None, feedback_topic_name=None):
+    global feedback
     dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
     feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
     feedback = rospy.Publisher(feedback_topic_name,
                                ActionFeedback,
                                queue_size=10)
 
-    def action_reciever(msg):
-        actions = {}
-        for act in Action.__subclasses__():
-            actions[act.name or act.__name__] = act
-        if msg.name in actions:
-            try:
-                action = actions[msg.name](msg.action_id,
-                                           msg.dispatch_time,
-                                           feedback)
-                ids[msg.action_id] = action
-                action.start(**keyval_to_dict(msg.parameters))
-                action.report_success()
-            except Exception as e:
-                rospy.logwarn("Action '%s' failed. %s" % (msg.name, e))
-                feedback.publish(ActionFeedback(msg.action_id,
-                                                "action failed",
-                                                dict_to_keyval(None)))
-        elif msg.name == 'cancel_action':
-            if msg.action_id in ids:
-                ids[msg.action_id].cancel()
     rospy.Subscriber(dispatch_topic_name,
                      ActionDispatch,
                      action_reciever)
@@ -55,10 +65,12 @@ class Action(object):
     """
     name = ""
 
-    def __init__(self, action_id, dispatch_time, feedback_pub):
+    def __init__(self, action_id, dispatch_time, feedback_pub, arguments):
         self.action_id = action_id
         self.dispatch_time = dispatch_time
         self.feedback_pub = feedback_pub
+        self.arguments = arguments
+        self.status = "Ready"
         self.report_enabled()
 
     def feedback(self, status, info=None):
@@ -84,11 +96,32 @@ class Action(object):
                 should generate an exception of some sort (unless you succeed?)
         """
 
+        rospy.logwarn("There is supposed to be some code for %s.start()" %
+                      self.name)
         raise NotImplementedError
 
     def cancel(self):
-        rospy.logwarn("Action %s [%i] cannot be cancelled." %
+        rospy.logwarn("Action %s [%i] has no cancel method." %
                       (self.name, self.action_id))
+        self.status = "Cancelled"
+
+    def pause(self):
+        rospy.logwarn("Action %s [%i] has no pause method. Cancelling." %
+                      (self.name, self.action_id))
+        self.status = "Paused"
+        self.cancel()
+
+    def resume(self):
+        rospy.logwarn("Action %s [%i] has no resume method." %
+                      (self.name, self.action_id))
+        if self.status == "Paused":
+            rospy.logwarn("Action %s [%i] is restarting." %
+                          (self.name, self.action_id))
+            self.start(**self.arguments)
+            self.status = "Resumed"
+        else:
+            rospy.logwarn("Action %s [%i] is not paused." %
+                          (self.name, self.action_id))
 
 
 def planner_action(action_name):
@@ -144,7 +177,7 @@ if __name__ == "__main__":
         print "Hello world."
 
     @planner_action("bad")
-    def bad(param = "Bar"):
+    def bad(param="Bar"):
         print "Oh no, an error. %s" % param
         raise Exception
 
