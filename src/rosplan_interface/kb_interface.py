@@ -1,5 +1,12 @@
 #! /usr/bin/python
+"""
+ Rosplan Knowledge Base Interface
 
+ Avoids the totally convoluted syntax of
+   Rosplan, and lets you easily put data in
+   the scene database at the same time
+
+"""
 from __future__ import absolute_import
 
 import rospy
@@ -87,12 +94,9 @@ def get_instance(type_name, item_name, return_type=None):
     return db.query_named('%s__%s' % (type_name, item_name), return_type)
 
 
-def add_predicate(type_name, *args, **kwargs):
-    if args:
-        args = list(args)
-        for argname in get_args(type_name):
-            if argname not in kwargs and args:
-                kwargs[argname] = args.pop(0)
+def add_predicate(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_ADD,
         KnowledgeItem(KB_ITEM_FACT,
@@ -122,12 +126,9 @@ def list_instances(type_name, item_type=None):
         return instance_names
 
 
-def rm_predicate(type_name, *args, **kwargs):
-    if args:
-        args = list(args)
-        for argname in get_args(type_name):
-            if argname not in kwargs and args:
-                kwargs[argname] = args.pop(0)
+def rm_predicate(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_RM, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM,
         KnowledgeItem(KB_ITEM_FACT,
@@ -137,12 +138,9 @@ def rm_predicate(type_name, *args, **kwargs):
                       0.0))
 
 
-def add_goal(type_name, *args, **kwargs):
-    if args:
-        args = list(args)
-        for argname in get_args(type_name):
-            if argname not in kwargs and args:
-                kwargs[argname] = args.pop(0)
+def add_goal(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_GOAL, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_GOAL,
         KnowledgeItem(KB_ITEM_FACT,
@@ -152,12 +150,10 @@ def add_goal(type_name, *args, **kwargs):
                       0.0))
 
 
-def rm_goal(type_name, *args, **kwargs):
-    if args:
-        args = list(args)
-        for argname in get_args(type_name):
-            if argname not in kwargs and args:
-                kwargs[argname] = args.pop(0)
+def rm_goal(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_RM_GOAL,
+                                                     type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM_GOAL,
         KnowledgeItem(KB_ITEM_FACT,
@@ -165,6 +161,16 @@ def rm_goal(type_name, *args, **kwargs):
                       type_name,
                       dict_to_keyval(kwargs),
                       0.0))
+
+
+def list_goals():
+    goals = services['get_current_goals_srv']('').attributes
+    return goals
+
+
+def clear_goals():
+    for goal in list_goals():
+        rm_goal(goal)
 
 
 def get_args(item):
@@ -177,16 +183,3 @@ def get_args(item):
                 return False  # not in domain...
 
     return domainitems[item].keys()
-
-
-def plan():
-    services['planning_srv']()
-
-
-if __name__ == "__main__":
-    rospy.init_node("kb_demo")
-    init_kb()
-    add_instance('person', 'jake')
-    add_predicate('robotat', 'home')
-    rm_instance('person', 'jake')
-    rm_predicate('robotat', 'home')
