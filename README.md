@@ -94,8 +94,8 @@ Sometimes you want to tell rosplan what to do. To do that, you first need to add
 planner.add_instance('location', 'loc1')
 # you can store stuff into the scene database with a third arg
 planner.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
-planner.add_goal('robotat', {'loc': 'loc1'})
-planner.add_goal('hasreceivedmessage', {'msg': 'msg1', 'loc': 'loc1'})
+planner.add_goal('robotat', loc='loc1')
+planner.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
 
 # Then, plan and execute!
 planner.plan()
