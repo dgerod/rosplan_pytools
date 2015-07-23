@@ -26,3 +26,5 @@ def init_rosplan(block=False):
     init_dispatch()
     if block:
         rospy.spin()
+
+init = init_rosplan
