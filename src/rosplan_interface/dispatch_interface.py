@@ -23,6 +23,10 @@ _status = None
 STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
 
 
+def is_done():
+    return get_dispatch_status() == 'Ready'
+
+
 def get_dispatch_status():
     return _status
 
