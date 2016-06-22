@@ -2,10 +2,8 @@
 """
  Rosplan Knowledge Base Interface
 
- Avoids the totally convoluted syntax of
-   Rosplan, and lets you easily put data in
-   the scene database at the same time
-
+ Avoids the totally convoluted syntax of Rosplan, and lets you easily put data in
+ the scene database at the same time.
 """
 from __future__ import absolute_import
 
@@ -85,29 +83,13 @@ def add_instance(type_name, item_name, value=None):
         KnowledgeItem(KB_ITEM_INSTANCE,
                       type_name,
                       item_name,
-                      "", [], 0.0))
+                      "", [], 0.0, False))
 
 
 def get_instance(type_name, item_name, return_type=None):
     if return_type is None:
         return_type = types[type_name]
     return db.query_named('%s__%s' % (type_name, item_name), return_type)
-
-
-def gen_predicate(type_name, **kwargs):
-    return KnowledgeItem(KB_ITEM_FACT,
-                         "", "",
-                         type_name,
-                         dict_to_keyval(kwargs),
-                         0.0)
-
-
-def add_predicate(type_name, **kwargs):
-    if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_ADD,
-        gen_predicate(type_name, **kwargs))
 
 
 def rm_instance(type_name, item_name):
@@ -130,12 +112,38 @@ def list_instances(type_name, item_type=None):
         return instance_names
 
 
+def gen_predicate(type_name, **kwargs):
+    return KnowledgeItem(KB_ITEM_FACT,
+                         "", "",
+                         type_name,
+                         dict_to_keyval(kwargs),
+                         0.0, False)
+
+
+def add_predicate(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
+    return services['update_knowledge_base_srv'](
+        KB_UPDATE_ADD,
+        gen_predicate(type_name, **kwargs))
+
+
 def rm_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base_srv'](KB_UPDATE_RM, type_name)
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM,
         gen_predicate(type_name, **kwargs))
+
+
+def list_predicates():
+    predicates = services['get_current_knowledge_srv']('').attributes
+    return predicates
+
+
+def clear_predicates():
+    for predicate in list_predicates():
+        rm_predicate(predicate)
 
 
 def add_goal(type_name, **kwargs):
@@ -175,3 +183,5 @@ def get_args(item):
                 return False  # not in domain...
 
     return domainitems[item].keys()
+
+
