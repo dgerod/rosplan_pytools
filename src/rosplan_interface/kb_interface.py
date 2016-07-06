@@ -111,13 +111,40 @@ def list_instances(type_name, item_type=None):
     else:
         return instance_names
 
+def is_predicate_negative(name):
+    """
+    Checks and remove negative symbol in case it the predicate is negated.
+    The accepted format is: "[not|NOT|!] predicate_name", it is mandatory a space 
+    between the negative symbol and the predicate  name.
+    """
+
+    # Check if the name is negated
+    pattern_1 = "not "; pattern_2 = pattern_1.upper(); pattern_3 = "! "        
+    a = (name.startswith(pattern_1) or name.startswith(pattern_2))
+    b = name.startswith(pattern_3)    
+    
+    is_negative = (a or b)
+    
+    # In case it is negated, remove negative    
+    if a == True:
+        index = len(pattern_1)
+        new_name = name[index:]
+    elif b == True:
+        index = len(pattern_3)
+        new_name = name[index:]
+    else:
+        new_name = name
+    
+    return new_name, is_negative
+
 
 def gen_predicate(type_name, **kwargs):
+    new_type_name, is_negative = is_predicate_negative(type_name)
     return KnowledgeItem(KB_ITEM_FACT,
                          "", "",
-                         type_name,
+                         new_type_name,
                          dict_to_keyval(kwargs),
-                         0.0, False)
+                         0.0, is_negative)
 
 
 def add_predicate(type_name, **kwargs):
