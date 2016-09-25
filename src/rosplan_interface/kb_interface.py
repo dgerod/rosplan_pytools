@@ -2,10 +2,8 @@
 """
  Rosplan Knowledge Base Interface
 
- Avoids the totally convoluted syntax of
-   Rosplan, and lets you easily put data in
-   the scene database at the same time
-
+ Avoids the totally convoluted syntax of Rosplan, and lets you easily put data in
+ the scene database at the same time.
 """
 from __future__ import absolute_import
 
@@ -85,29 +83,13 @@ def add_instance(type_name, item_name, value=None):
         KnowledgeItem(KB_ITEM_INSTANCE,
                       type_name,
                       item_name,
-                      "", [], 0.0))
+                      "", [], 0.0, False))
 
 
 def get_instance(type_name, item_name, return_type=None):
     if return_type is None:
         return_type = types[type_name]
     return db.query_named('%s__%s' % (type_name, item_name), return_type)
-
-
-def gen_predicate(type_name, **kwargs):
-    return KnowledgeItem(KB_ITEM_FACT,
-                         "", "",
-                         type_name,
-                         dict_to_keyval(kwargs),
-                         0.0)
-
-
-def add_predicate(type_name, **kwargs):
-    if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_ADD,
-        gen_predicate(type_name, **kwargs))
 
 
 def rm_instance(type_name, item_name):
@@ -129,6 +111,49 @@ def list_instances(type_name, item_type=None):
     else:
         return instance_names
 
+def is_predicate_negative(name):
+    """
+    Checks and remove negative symbol in case it the predicate is negated.
+    The accepted format is: "[not|NOT|!] predicate_name", it is mandatory a space 
+    between the negative symbol and the predicate  name.
+    """
+
+    # Check if the name is negated
+    pattern_1 = "not "; pattern_2 = pattern_1.upper(); pattern_3 = "! "        
+    a = (name.startswith(pattern_1) or name.startswith(pattern_2))
+    b = name.startswith(pattern_3)    
+    
+    is_negative = (a or b)
+    
+    # In case it is negated, remove negative    
+    if a == True:
+        index = len(pattern_1)
+        new_name = name[index:]
+    elif b == True:
+        index = len(pattern_3)
+        new_name = name[index:]
+    else:
+        new_name = name
+    
+    return new_name, is_negative
+
+
+def gen_predicate(type_name, **kwargs):
+    new_type_name, is_negative = is_predicate_negative(type_name)
+    return KnowledgeItem(KB_ITEM_FACT,
+                         "", "",
+                         new_type_name,
+                         dict_to_keyval(kwargs),
+                         0.0, is_negative)
+
+
+def add_predicate(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
+    return services['update_knowledge_base_srv'](
+        KB_UPDATE_ADD,
+        gen_predicate(type_name, **kwargs))
+
 
 def rm_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
@@ -136,6 +161,16 @@ def rm_predicate(type_name, **kwargs):
     return services['update_knowledge_base_srv'](
         KB_UPDATE_RM,
         gen_predicate(type_name, **kwargs))
+
+
+def list_predicates():
+    predicates = services['get_current_knowledge_srv']('').attributes
+    return predicates
+
+
+def clear_predicates():
+    for predicate in list_predicates():
+        rm_predicate(predicate)
 
 
 def add_goal(type_name, **kwargs):
@@ -175,3 +210,5 @@ def get_args(item):
                 return False  # not in domain...
 
     return domainitems[item].keys()
+
+
