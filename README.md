@@ -1,5 +1,5 @@
 # rosplan_interface
-An easier way to hook into kcl_rosplan
+An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
 
 
 ## How to use
@@ -85,7 +85,7 @@ class Talker(planner.Action):
 
 That's it! The relevant code will be called as rosplan dispatches it (so long as you called the initializer in the beginning)
 
-## Manipulating RosPlan
+## Manipulating ROSPlan
 
 Sometimes you want to tell rosplan what to do. To do that, you first need to add goals, then run the planner. Better examples are coming, but here's the gist.
 

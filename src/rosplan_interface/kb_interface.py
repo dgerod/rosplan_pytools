@@ -1,10 +1,10 @@
-#! /usr/bin/python
 """
- Rosplan Knowledge Base Interface
+ ROSPlan Knowledge Base Interface
 
- Avoids the totally convoluted syntax of Rosplan, and lets you easily put data in
+ Avoids the totally convoluted syntax of ROSPlan, and lets you easily put data in
  the scene database at the same time.
 """
+
 from __future__ import absolute_import
 
 import rospy
@@ -16,9 +16,9 @@ from rosplan_knowledge_msgs.msg import KnowledgeItem
 from .utils import keyval_to_dict, dict_to_keyval
 from mongodb_store.message_store import MessageStoreProxy
 
-KB_UPDATE_ADD = 0
-KB_UPDATE_RM = 2
-KB_UPDATE_GOAL = 1
+KB_UPDATE_ADD_KNOWLEDGE = 0
+KB_UPDATE_RM_KNOWLEDGE = 2
+KB_UPDATE_ADD_GOAL = 1
 KB_UPDATE_RM_GOAL = 3
 
 KB_ITEM_INSTANCE = 0
@@ -35,40 +35,43 @@ db = None
 
 types = {}
 
-
 def init_kb(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
 
     global db
     global services
-    services['get_current_instances_srv'] = \
+
+    services['get_current_instances'] = \
         rospy.ServiceProxy(prefix + "/get_current_instances",
                            GetInstanceService)
-    services['update_knowledge_base_srv'] = \
+    services['update_knowledge_base'] = \
         rospy.ServiceProxy(prefix + "/update_knowledge_base",
                            KnowledgeUpdateService)
-    services['get_domain_predicates_srv'] = \
+    services['get_domain_predicates'] = \
         rospy.ServiceProxy(prefix + "/get_domain_predicates",
                            GetDomainAttributeService)
-    services['get_current_goals_srv'] =\
+    services['get_current_goals'] =\
         rospy.ServiceProxy(prefix + "/get_current_goals",
                            GetAttributeService)
-    services['get_current_knowledge_srv'] = \
+    services['get_current_knowledge'] = \
         rospy.ServiceProxy(prefix + "/get_current_knowledge",
                            GetAttributeService)
-    services['get_domain_operators_srv'] = \
+    services['get_domain_operators'] = \
         rospy.ServiceProxy(prefix + "/get_domain_operators",
                            GetDomainOperatorService)
-    services['get_domain_types_srv'] = \
+    services['get_domain_types'] = \
         rospy.ServiceProxy(prefix + "/get_domain_types",
                            GetDomainTypeService)
-    services['planning_srv'] = \
+    services['planning'] = \
         rospy.ServiceProxy(prefix + "/planning_server",
                            Empty)
-    services['query_srv'] = \
+    services['query'] = \
         rospy.ServiceProxy(prefix + "/query_knowledge_base",
                            KnowledgeQueryService)
+    services['clear_knowledge'] = \
+        rospy.ServiceProxy(prefix + "/clear_knowledge_base",
+                           Empty)
 
     db = MessageStoreProxy()
 
@@ -78,8 +81,7 @@ def add_instance(type_name, item_name, value=None):
         db.insert_named('%s__%s' % (type_name, item_name), value)
         types[type_name] = value.__class__._type
         # print value.__class__._type
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_ADD,
+    return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
         KnowledgeItem(KB_ITEM_INSTANCE,
                       type_name,
                       item_name,
@@ -94,15 +96,15 @@ def get_instance(type_name, item_name, return_type=None):
 
 def rm_instance(type_name, item_name):
     # db[type_name].remove({'name': item_name})
-    return services['update_knowledge_base_srv'](KB_UPDATE_RM,
-                                                 KnowledgeItem(KB_ITEM_INSTANCE,
-                                                               type_name,
-                                                               item_name,
-                                                               "", [], 0.0))
+    return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
+        KnowledgeItem(KB_ITEM_INSTANCE,
+                      type_name,
+                      item_name,
+                      "", [], 0.0, False))
 
 
 def list_instances(type_name, item_type=None):
-    instance_names = services['get_current_instances_srv'](type_name).instances
+    instance_names = services['get_current_instances'](type_name).instances
     if item_type:
         res = {}
         for name in instance_names:
@@ -110,6 +112,7 @@ def list_instances(type_name, item_type=None):
         return res
     else:
         return instance_names
+
 
 def is_predicate_negative(name):
     """
@@ -122,10 +125,8 @@ def is_predicate_negative(name):
     pattern_1 = "not "; pattern_2 = pattern_1.upper(); pattern_3 = "! "        
     a = (name.startswith(pattern_1) or name.startswith(pattern_2))
     b = name.startswith(pattern_3)    
-    
-    is_negative = (a or b)
-    
-    # In case it is negated, remove negative    
+
+    # In case it is negated, remove negative
     if a == True:
         index = len(pattern_1)
         new_name = name[index:]
@@ -134,7 +135,8 @@ def is_predicate_negative(name):
         new_name = name[index:]
     else:
         new_name = name
-    
+
+    is_negative = (a or b)
     return new_name, is_negative
 
 
@@ -149,22 +151,20 @@ def gen_predicate(type_name, **kwargs):
 
 def add_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_ADD, type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_ADD,
+        return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE, type_name)
+    return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
         gen_predicate(type_name, **kwargs))
 
 
 def rm_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_RM, type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_RM,
+        return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE, type_name)
+    return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
         gen_predicate(type_name, **kwargs))
 
 
 def list_predicates():
-    predicates = services['get_current_knowledge_srv']('').attributes
+    predicates = services['get_current_knowledge']('').attributes
     return predicates
 
 
@@ -175,23 +175,20 @@ def clear_predicates():
 
 def add_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_GOAL, type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_GOAL,
+        return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL, type_name)
+    return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL,
         gen_predicate(type_name, **kwargs))
 
 
 def rm_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base_srv'](KB_UPDATE_RM_GOAL,
-                                                     type_name)
-    return services['update_knowledge_base_srv'](
-        KB_UPDATE_RM_GOAL,
+        return services['update_knowledge_base'](KB_UPDATE_RM_GOAL, type_name)
+    return services['update_knowledge_base'](KB_UPDATE_RM_GOAL,
         gen_predicate(type_name, **kwargs))
 
 
 def list_goals():
-    goals = services['get_current_goals_srv']('').attributes
+    goals = services['get_current_goals']('').attributes
     return goals
 
 
@@ -203,7 +200,7 @@ def clear_goals():
 def get_args(item):
     global domainitems
     if item not in domainitems:
-        res = services['get_domain_predicates_srv']()
+        res = services['get_domain_predicates']()
         for pred in res.items:
             domainitems[pred.name] = keyval_to_dict(pred.typed_parameters)
             if item not in domainitems:
@@ -212,3 +209,5 @@ def get_args(item):
     return domainitems[item].keys()
 
 
+def clear_all():
+    services['clear_knowledge']()

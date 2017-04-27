@@ -13,7 +13,7 @@ def init_rosplan(block=False):
     Initialize all the things!!
 
     Loads subscribers and services, assuming you want
-      to work with all of Rosplan. No detriment if
+      to work with all of ROSPlan. No detriment if
       that isn't the case, but there are smaller methods
       for each component to do what you want.
 
