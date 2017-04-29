@@ -1,7 +1,7 @@
 """
-  Rosplan Dispatch Interface
+  ROSPlan Dispatch Interface
 
-  A simple way to set, poll, and interupt plans.
+  A simple way to set, poll, and interrupt plans.
 
 """
 
@@ -11,16 +11,14 @@ from std_msgs.msg import String
 
 
 cmd_pub = None
-
+_status = None
+# quick reference to avoid looking at Rosplan source.
+STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
 
 def init_dispatch():
     global cmd_pub
     cmd_pub = rospy.Publisher('/kcl_rosplan/planning_commands', String)
     rospy.Subscriber('kcl_rosplan/system_state', String, set_dispatch_status)
-
-_status = None
-# quick reference to avoid looking at Rosplan source.
-STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
 
 
 def is_done():
