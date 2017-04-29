@@ -3,7 +3,7 @@ An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
 
 
 ## How to use
-Somewhere in your code, you have to import and initialize rosplan_interface. Do the initializing *after* you have initialized rospy.
+Somewhere in your code, you have to import and initialize `rosplan_interface`. Do the initializing *after* you have initialized rospy.
 ```
 import rosplan_interface as planner
 
@@ -15,7 +15,7 @@ if __name__=="__main__":
 
 ## Hooking in actions
 
-You can use two method for hooking in new actions for rosplan. This should be make in conjunction with your domain.pddl file, as it uses the names of the pddl actions to find your functions. The following are based on the following:
+You can use two method for hooking in new actions for ROSPlan. This should be make in conjunction with your domain.pddl file, as it uses the names of the pddl actions to find your functions. The following are based on the following:
 
 ```
 (:action talk
@@ -25,7 +25,7 @@ You can use two method for hooking in new actions for rosplan. This should be ma
 )
 ```
 
-An extremely important note is that **you have to set postconditions in your code**. If the postconditions are not set by the time your code completes, kcl_rosplan may assume the next action cannot be executed and trigger a replan. Also, due to kcl_rosplan limitations **everything must be lowercase**. 
+An extremely important note is that depending on which approach is used to create an action **you have to set postconditions in your code**. If the postconditions (or effects) are not set by the time your code completes, ROSPlan may assume the next action cannot be executed and trigger a replan. Also, due to ROSPlan limitations **everything must be lowercase**. 
 
 
 ### Function-Based
@@ -48,7 +48,7 @@ def different_fn_name(loc, msg):
   set_postconditions()
 ```
 
-An action can also fail by raising an exception. Rosplan will handle that and trigger a replan
+An action can also fail by raising an exception. ROSPlan will handle that and trigger a replan
 ```
 @planner.planner_action
 def talk(msg, loc):
@@ -56,14 +56,14 @@ def talk(msg, loc):
   raise OhDearException()
 ```
 
-
+In case you are using function-based approach you have to set postconditions (or effects) in your code.
 
 ### Class-Based
 
 This is the way to make more robust actions, and function-based actions are automatically redefined into a class.
 
 ```
-class Talker(planner.Action):
+class Talker(planner.SimpleAction):
   name = "talk"
   
   def start(msg, loc):
@@ -83,16 +83,20 @@ class Talker(planner.Action):
     self.start(self.arguments)
 ```
 
-That's it! The relevant code will be called as rosplan dispatches it (so long as you called the initializer in the beginning)
+That's it! The relevant code will be called as ROSPlan dispatches it (so long as you called the initializer in the beginning)
+
+When you use `SimpleAction` class to create an action you have to set postconditions (or effects) in your code. While setting postconditions is not necessary if you use `Action` class, as this class does it internally using `CheckActionAndProcessEffects` class. 
 
 ## Manipulating ROSPlan
 
-Sometimes you want to tell rosplan what to do. To do that, you first need to add goals, then run the planner. Better examples are coming, but here's the gist.
+Sometimes you want to tell ROSPlan what to do. To do that, you first need to add goals, then run the planner.
 
 ```
+import rosplan_interface as planner
+
 # Using the KB
 planner.add_instance('location', 'loc1')
-# you can store stuff into the scene database with a third arg
+# You can store stuff into the scene database with a third arg
 planner.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
 planner.add_goal('robotat', loc='loc1')
 planner.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
