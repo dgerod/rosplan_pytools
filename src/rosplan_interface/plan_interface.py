@@ -1,5 +1,5 @@
 """
-  ROSPlan Dispatch Interface
+  ROSPlan Planning System Interface
 
   A simple way to set, poll, and interrupt plans.
 
@@ -11,9 +11,13 @@ from std_msgs.msg import String
 
 
 cmd_pub = None
-_status = None
-# quick reference to avoid looking at Rosplan source.
-STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
+status = None
+
+
+# Quick reference to avoid looking at ROSPlan source.
+#   STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
+#   COMMANDS = ['plan', 'pause', 'resume', 'cancel']
+
 
 def init_dispatch():
     global cmd_pub
@@ -26,12 +30,12 @@ def is_done():
 
 
 def get_dispatch_status():
-    return _status
+    return status
 
 
 def set_dispatch_status(msg):
-    global _status
-    _status = msg.data
+    global status
+    status = msg.data
 
 
 def plan_and_wait():

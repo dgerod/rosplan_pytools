@@ -4,7 +4,7 @@
 from .action_interface import * # noqa
 from .utils import * # noqa
 from .kb_interface import * # noqa
-from .dispatch_interface import * # noqa
+from .plan_interface import * # noqa
 import rospy
 
 
