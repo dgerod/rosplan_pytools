@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import rospy
 from rosplan_interface import kb_interface as kbi
 
 def main():
@@ -9,7 +10,7 @@ def main():
     for predicate in kbi.list_predicates():
         print "[" + str(predicate) + "]"
     print "\nInstances ---"
-    print str(kbi.list_instances(""))
+    print str(kbi.list_instances())
     print "\nGoals ---"
     for goal in kbi.list_goals():
         print "[" + str(goal) + "]"

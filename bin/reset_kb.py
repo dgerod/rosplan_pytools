@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import rospy
 from rosplan_interface import kb_interface as kbi
 
 def main():
