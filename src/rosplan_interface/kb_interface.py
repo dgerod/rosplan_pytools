@@ -69,6 +69,7 @@ def _gen_predicate(type_name, **kwargs):
                          dict_to_keyval(kwargs),
                          0.0, is_negative)
 
+
 def init_kb(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
@@ -178,6 +179,7 @@ def rm_instance(type_name, item_name):
                       type_name,
                       item_name,
                       "", [], 0.0, False))
+
 
 def list_instances(type_name="", item_type=None):
     instance_names = services['get_current_instances'](type_name).instances

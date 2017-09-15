@@ -12,10 +12,10 @@ from .utils import keyval_to_dict, dict_to_keyval
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
 from . import kb_interface as kbi
 
-registered_actions = {}
-func_actions = {}
-ids = {}
 feedback = None
+action_ids = {}
+registered_actions = []
+func_action = {}
 
 def start_actions(dispatch_topic_name=None,
                   feedback_topic_name=None,
@@ -29,26 +29,28 @@ def start_actions(dispatch_topic_name=None,
 
     rospy.Subscriber(dispatch_topic_name,
                      ActionDispatch,
-                     action_reciever)
+                     action_receiver)
     rospy.loginfo("Started listening for planner actions")
     if block:
         rospy.spin()
 
-def register_action(name, action):
-    """
-    name -- The PDDL name of the action.
-    action -- The class that execute the action.
-    """
-    global registered_actions
-    registered_actions[name.lower()] = action
 
-def action_reciever(msg):
+def register_action(name, action):
+    global registered_actions
+    registered_actions.append((name,action))
+
+
+def action_receiver(msg):
+
+    global action_ids
 
     actions = {}
     for act in SimpleAction.__subclasses__():
         actions[act.name or act.__name__] = act
     for act in Action.__subclasses__():
         actions[act.name or act.__name__] = act
+    #for act in registered_actions:
+    #    actions[act[0]] = act[1]
 
     if msg.name in actions:
         try:
@@ -56,7 +58,7 @@ def action_reciever(msg):
                                        msg.dispatch_time,
                                        feedback,
                                        keyval_to_dict(msg.parameters))
-            ids[msg.action_id] = action
+            action_ids[msg.action_id] = action
 
             if action.__class__ == SimpleAction:
                 action.start(**keyval_to_dict(msg.parameters))
@@ -70,14 +72,15 @@ def action_reciever(msg):
                                             "action failed",
                                             dict_to_keyval(None)))
     elif msg.name == 'cancel_action':
-        if msg.action_id in ids:
-            ids[msg.action_id].cancel()
+        if msg.action_id in action_ids:
+            action_ids[msg.action_id].cancel()
     elif msg.name == 'pause_action':
-        if msg.action_id in ids:
-            ids[msg.action_id].pause()
+        if msg.action_id in action_ids:
+            action_ids[msg.action_id].pause()
     elif msg.name == 'resume_action':
-        if msg.action_id in ids:
-            ids[msg.action_id].resume()
+        if msg.action_id in action_ids:
+            action_ids[msg.action_id].resume()
+
 
 class SimpleAction(object):
     """
@@ -115,10 +118,11 @@ class SimpleAction(object):
     def start(self, **kwargs):
         """
         Runs the given task. An exception here will report 'fail', and a
-          completion will report success.
-        Note: You should make sure long-running functions are
-                interruptible with cancel(). If cancelled, you
-                should generate an exception of some sort (unless you succeed?)
+        completion will report success.
+
+        NOTE: You should make sure long-running functions can be interrupted
+        with cancel(). If cancelled, you should generate an exception of some 
+        sort (unless you succeed?)
         """
 
         rospy.logwarn("There is supposed to be some code for %s.start()" %
@@ -154,7 +158,7 @@ class CheckActionAndProcessEffects(object):
     It checks if the parameters of the action are correct according to PDDL definition,
     and it applies the effects defined in the PDDL file. 
     
-    NOTE: Based on RPActionInterface class of ROSPlan/rosplan_planning_system.
+    NOTE: Based on RPActionInterface class of 'ROSPlan/rosplan_planning_system.
     """
     def __init__(self, action_name, prefix="/kcl_rosplan"):
         rospy.loginfo("ProcessEffectOfAction::init")
@@ -178,7 +182,7 @@ class CheckActionAndProcessEffects(object):
         self.predicates = {}
         self.bound_params = {}
 
-    def _fetchPredicatesFromDomain(self, action_name):
+    def _fetch_predicates_from_domain(self, action_name):
 
         #
         # ---
@@ -220,7 +224,7 @@ class CheckActionAndProcessEffects(object):
 
         return predicate_names
 
-    def _fechPredicateDetails(self, predicate_collection):
+    def _fetch_details_of_predicates(self, predicate_collection):
         self.predicates = {}
         for predicate_name in predicate_collection:
             if predicate_name not in self.predicates:
@@ -229,10 +233,10 @@ class CheckActionAndProcessEffects(object):
                 print(res.predicate)
 
     def prepare(self):
-        predicate_collection = self._fetchPredicatesFromDomain(self.pddl_action)
-        self._fechPredicateDetails(predicate_collection)
+        predicate_collection = self._fetch_predicates_from_domain(self.pddl_action)
+        self._fetch_details_of_predicates(predicate_collection)
 
-    def checkParameters(self, arguments):
+    def check_parameters(self, arguments):
 
         found = [False] * len(self.params.typed_parameters)
 
@@ -248,7 +252,7 @@ class CheckActionAndProcessEffects(object):
 
         return True
 
-    def applyEffects(self):
+    def apply_effects(self):
 
         # Simple start del effects
         for edx, effect in enumerate(self.op.at_start_del_effects):
@@ -328,18 +332,19 @@ class Action(object):
         checker = CheckActionAndProcessEffects(self.__class__.name)
         checker.prepare()
 
-        if checker.checkParameters(kwargs) == False:
+        if checker.check_parameters(kwargs) == False:
             raise ValueError("Action arguments are incorrect")
         if self.start(**kwargs) == True:
-            checker.applyEffects()
+            checker.apply_effects()
 
     def start(self, **kwargs):
         """
         Runs the given task. An exception here will report 'fail', and a
-          completion will report success.
-        Note: You should make sure long-running functions are
-                interruptible with cancel(). If cancelled, you
-                should generate an exception of some sort (unless you succeed?)
+        completion will report success.
+          
+        NOTE: You should make sure long-running functions can be interrupted
+        with cancel(). If cancelled, you should generate an exception of some 
+        sort (unless you succeed?)
         """
 
         rospy.logwarn("There is supposed to be some code for %s.execute()" %
@@ -369,6 +374,7 @@ class Action(object):
             rospy.logwarn("Action %s [%i] is not paused." %
                           (self.name, self.action_id))
 
+
 def planner_action(action_name):
     """
     Decorator to convert a function into an action.
@@ -379,7 +385,9 @@ def planner_action(action_name):
 
     def decorator(func):
 
-        class FunctionAction(SimpleAction):
+        global func_action
+
+        class FunctionToAction(SimpleAction):
             name = action_name.lower()
             # Lowercase due to ROSPlan quirks
             _spec = inspect.getargspec(func)
@@ -391,7 +399,7 @@ def planner_action(action_name):
                 else:
                     func(**kwargs)
 
-        func_actions[action_name.lower()] = FunctionAction
+        func_action[action_name.lower()] = FunctionToAction
         # we don't actually need to do anything,
         #  just subclass Action, and dodge lazyness
         return func
