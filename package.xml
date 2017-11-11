@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
 <package>
-  <name>rosplan_interface</name>
-  <version>0.0.0</version>
-  <description>The rosplan_interface package</description>
+  <name>rosplan_pytools</name>
+  <version>0.0.1</version>
+  <description>An easier way to hook in ROSPlan using Python</description>
 
-  <maintainer email="yochan@todo.todo">yochan</maintainer>
+  <maintainer email="dgerod@xyz-lab.org.es">Diego Escudero</maintainer>
+  <author email="yochan@todo.todo">yochan</author>
 
   <!-- One license tag required, multiple allowed, one license per tag -->
   <!-- Commonly used license strings: -->
@@ -12,7 +13,12 @@
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>mongodb_store</run_depend>
   <run_depend>rosplan_dispatch_msgs</run_depend>
+  <run_depend>rosplan_knowlege_msgs</run_depend>
 
   <export>
   </export>
