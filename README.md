@@ -1,4 +1,4 @@
-# rosplan_interface
+# rosplan_pytools
 An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
 
 
