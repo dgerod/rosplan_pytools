@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import rospy
 from geometry_msgs.msg import Pose
@@ -12,10 +11,10 @@ def main():
 
     kbi.init_kb()
 
-    p1, t1 = kbi.get_instance('waypoint', 'p1', Pose._type)
+    p1, p1_type = kbi.get_instance('waypoint', 'p1', Pose._type)
     print 'instance:\n', p1
 
-    p2, t2 = kbi.get_instance(None, 'p2', Pose._type)
+    p2, p2_type = kbi.get_instance(None, 'p2', Pose._type)
     print 'instance:\n', p2
 
 if __name__ == '__main__':
