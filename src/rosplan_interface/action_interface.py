@@ -411,28 +411,3 @@ def planner_action(action_name):
         return decorator(func)
     else:
         return decorator
-
-if __name__ == "__main__":
-    rospy.init_node("action_demo")
-
-    class DemoSimpleAction(SimpleAction):
-        name = "demo"
-
-        def start(self, **kwargs):
-            print "DEMO!!!"
-
-    @planner_action
-    def sample():
-        print "SAMPLE!!!"
-
-    @planner_action("foobar")
-    def other():
-        print "Hello world."
-
-    @planner_action("bad")
-    def bad(param="Bar"):
-        print "Oh no, an error. %s" % param
-        raise Exception
-
-    start_actions()
-    rospy.spin()

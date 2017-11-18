@@ -116,6 +116,10 @@ def init_kb(prefix=None):
     db = MessageStoreProxy()
 
 
+def exist_instance(item_name):
+    instance_names = services['get_current_instances']("").instances
+    return item_name in instance_names
+
 def add_instance(type_name, item_name, value=None):
     if value is not None:
         db.insert_named('%s__%s' % (type_name, item_name), value)
@@ -126,16 +130,6 @@ def add_instance(type_name, item_name, value=None):
                       type_name,
                       item_name,
                       "", [], 0.0, False))
-
-
-"""
-def get_instance(type_name, item_name, return_type=None):
-    if return_type is None:
-        return_type = types[type_name]
-
-    # db.getCollection('message_store').find({'_meta.name': 'waypoint__p1'})
-    return db.query_named('%s__%s' % (type_name, item_name), return_type)
-"""
 
 
 def get_instance(type_name, item_name, return_type=None):
