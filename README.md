@@ -1,5 +1,6 @@
 # rosplan_pytools
-An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan)
+An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). This repository is a spin-off of [yochan-lab/rosplan_interface](https://github.com/yochan-lab/rosplan_interface).
+
 
 
 ## How to use
