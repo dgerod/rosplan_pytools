@@ -1,6 +1,5 @@
 """
- ROSPlan Knowledge Base Interface
-
+ ROSPlan Knowledge Base interface
  Avoids the totally convoluted syntax of ROSPlan, and lets you easily put data in
  the scene database at the same time.
 """
@@ -42,32 +41,77 @@ def _is_predicate_negative(name):
     between the negative symbol and the predicate  name.
     """
 
-    # Check if the name is negated
-    pattern_1 = "not "; pattern_2 = pattern_1.upper(); pattern_3 = "! "
-    a = (name.startswith(pattern_1) or name.startswith(pattern_2))
-    b = name.startswith(pattern_3)
+    pattern_1 = "not "
+    pattern_2 = pattern_1.upper()
+    pattern_3 = "! "
 
-    # In case it is negated, remove negative
-    if a == True:
+    # Check if the name is negated, and in case it is negated remove
+    # negative symbol
+    if name.startswith(pattern_1) or name.startswith(pattern_2):
         index = len(pattern_1)
         new_name = name[index:]
-    elif b == True:
+        is_negative = True
+    elif name.startswith(pattern_3):
         index = len(pattern_3)
         new_name = name[index:]
+        is_negative = True
     else:
         new_name = name
+        is_negative = False
 
-    is_negative = (a or b)
     return new_name, is_negative
 
 
 def _gen_predicate(type_name, **kwargs):
     new_type_name, is_negative = _is_predicate_negative(type_name)
     return KnowledgeItem(KB_ITEM_FACT,
-                         "", "",
+                         "",
+                         "",
                          new_type_name,
                          dict_to_keyval(kwargs),
                          0.0, is_negative)
+
+
+def _find_instance(item_name, type_name=None, value_type=None):
+
+    # Check if item exists in the KB
+    instance_names = services['get_current_instances']("").instances
+    if (item_name in instance_names) is False:
+        return None, None
+
+    # In case value type is not set find in the local storage.
+    if value_type is None:
+        if types[type_name] is not None:
+            value_type = types[type_name]
+        else:
+            return None, None
+
+    # Find data associated to the item in the SDB
+    if (type_name is not None) and (type_name != ''):
+        # Example in MongoDB:
+        #   db.getCollection('message_store').find({'_meta.name': 'waypoint__p1'})
+        instance = db.query_named('%s__%s' % (type_name, item_name), value_type)
+    else:
+        # This is not the best approach because it makes a lot of queries to
+        # the db. The query in MongoDB is something like:
+        #   db.getCollection('message_store').find({'_meta.name': {$regex: /p1/}})
+        #
+        # And here the code should be something like:
+        #   meta = {}
+        #   meta['name'] = '{$regex: /p1/}'
+        #   p1 = kbi.db.query(Pose._type, {}, meta, True, [], {}, 0)
+        #   print "db.query 3\n", p1
+        #
+        # Unfortunately, this code is not working as I am not able to pass a regex
+        # instruction to MongoDB using 'mongodb_store'. Therefore, I used a workaround
+        # that implies getting types in domain and use them to get the instance.
+        res = services['get_domain_types']()
+        for type_name in res.types:
+            instance = db.query_named('%s__%s' % (type_name, item_name), value_type)
+            if instance is not None:
+                break
+
+    return instance, type_name
 
 
 def init_kb(prefix=None):
@@ -87,7 +131,7 @@ def init_kb(prefix=None):
     services['get_domain_predicate_details'] = \
         rospy.ServiceProxy(prefix + "/get_domain_predicate_details",
                            GetDomainPredicateDetailsService)
-    services['get_current_goals'] =\
+    services['get_current_goals'] = \
         rospy.ServiceProxy(prefix + "/get_current_goals",
                            GetAttributeService)
     services['get_current_knowledge'] = \
@@ -120,73 +164,54 @@ def exist_instance(item_name):
     instance_names = services['get_current_instances']("").instances
     return item_name in instance_names
 
-def add_instance(type_name, item_name, value=None):
+
+def add_instance(item_name, type_name, value=None):
     if value is not None:
         db.insert_named('%s__%s' % (type_name, item_name), value)
         types[type_name] = value.__class__._type
         # print value.__class__._type
     return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
-        KnowledgeItem(KB_ITEM_INSTANCE,
-                      type_name,
-                      item_name,
-                      "", [], 0.0, False))
+                                             KnowledgeItem(KB_ITEM_INSTANCE,
+                                                           type_name,
+                                                           item_name,
+                                                           "", [], 0.0, False))
 
 
-def get_instance(type_name, item_name, return_type=None):
+def update_instance(item_name, value):
+    instance, type_name = _find_instance(item_name, None, None)
 
-    instance = None
-
-    if return_type is None:
-        return_type = types[type_name]
-
-    if type_name is not None:
-        # Example in MongoDB:
-        #   db.getCollection('message_store').find({'_meta.name': 'waypoint__p1'})
-        instance = db.query_named('%s__%s' % (type_name, item_name), return_type)
+    if instance is not None:
+        db.update_named(item_name, value)
+        return True
     else:
-        # This is not the best approach because it makes a lot of queries to the
-        # db. The query in MongoDB is something like:
-        #   db.getCollection('message_store').find({'_meta.name': {$regex: /p1/}})
-        #
-        # And here the code should be something like:
-        #   meta = {}
-        #   meta['name'] = '{$regex: /p1/}'
-        #   p1 = kbi.db.query(Pose._type, {}, meta, True, [], {}, 0)
-        #   print "db.query 3\n", p1
-        #
-        # Unfortunately, this code is not working as I am not able to pass a regex
-        # instruction to MongoDB using 'mongodb_store'. Therefore, I used a workaround
-        # that implies getting types in domain and use them to get the instance.
-        res = services['get_domain_types']()
-        for type_name in res.types:
-            instance = db.query_named('%s__%s' % (type_name, item_name), return_type)
-            if instance is not None:
-                break
-
-    return instance, type_name
+        return False
 
 
-def rm_instance(type_name, item_name):
+def get_instance(item_name, type_name=None, return_type=None):
+    return _find_instance(item_name, type_name, return_type)
+
+
+def rm_instance(item_name, type_name):
     # db[type_name].remove({'name': item_name})
     return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
-        KnowledgeItem(KB_ITEM_INSTANCE,
-                      type_name,
-                      item_name,
-                      "", [], 0.0, False))
+                                             KnowledgeItem(KB_ITEM_INSTANCE,
+                                                           type_name,
+                                                           item_name,
+                                                           "", [], 0.0, False))
 
 
 def list_instances(type_name="", item_type=None):
     instance_names = services['get_current_instances'](type_name).instances
     if item_type:
         res = {}
-        for name in instance_names:
-            res[name] = get_instance(type_name, name, item_type)
+        for item_name in instance_names:
+            res[item_name] = get_instance(item_name, type_name, item_type)
         return res
     else:
         return instance_names
 
 
-#def clear_instances():
+# def clear_instances():
 #        for item_name in list_instances():
 #            instance, type_name = get_instance(None, item_name)
 #            rm_instance(type_name, item_name)
@@ -196,14 +221,14 @@ def add_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE, type_name)
     return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
-        _gen_predicate(type_name, **kwargs))
+                                             _gen_predicate(type_name, **kwargs))
 
 
 def rm_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE, type_name)
     return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
-        _gen_predicate(type_name, **kwargs))
+                                             _gen_predicate(type_name, **kwargs))
 
 
 def list_predicates():
@@ -220,14 +245,14 @@ def add_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL, type_name)
     return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL,
-        _gen_predicate(type_name, **kwargs))
+                                             _gen_predicate(type_name, **kwargs))
 
 
 def rm_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
         return services['update_knowledge_base'](KB_UPDATE_RM_GOAL, type_name)
     return services['update_knowledge_base'](KB_UPDATE_RM_GOAL,
-        _gen_predicate(type_name, **kwargs))
+                                             _gen_predicate(type_name, **kwargs))
 
 
 def list_goals():
@@ -253,3 +278,4 @@ def get_args(item):
 
 def clear_all():
     services['clear_knowledge']()
+    # After cleaning the KB we must clean all information in the SDB
