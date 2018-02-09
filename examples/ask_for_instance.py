@@ -24,7 +24,7 @@ def retrieve_instances():
     p2, p2_type = kbi.get_instance('p2', None, Pose._type)
     print 'instance:\n', p2
 
-    kbi.types = { 'place' : Pose._type}
+    kbi._value_types['place'] = Pose._type
     p3, p3_type = kbi.get_instance('p3', 'place')
     print 'instance:\n', p3
 

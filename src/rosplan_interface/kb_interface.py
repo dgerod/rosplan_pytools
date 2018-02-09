@@ -27,11 +27,10 @@ KB_ITEM_INSTANCE = 0
 KB_ITEM_FACT = 1
 KB_ITEM_FUNCTION = 2
 
-# globals must be explicit
-services = {}
-db = None
-types = {}
-domain_items = {}
+_services = {}
+_sdb = None
+_value_types = {}
+_domain_items = {}
 
 
 def _is_predicate_negative(name):
@@ -75,14 +74,14 @@ def _gen_predicate(type_name, **kwargs):
 def _find_instance(item_name, type_name=None, value_type=None):
 
     # Check if item exists in the KB
-    instance_names = services['get_current_instances']("").instances
+    instance_names = _services['get_current_instances']("").instances
     if (item_name in instance_names) is False:
         return None, None
 
     # In case value type is not set find in the local storage.
     if value_type is None:
-        if types[type_name] is not None:
-            value_type = types[type_name]
+        if _value_types[type_name] is not None:
+            value_type = _value_types[type_name]
         else:
             return None, None
 
@@ -90,7 +89,7 @@ def _find_instance(item_name, type_name=None, value_type=None):
     if (type_name is not None) and (type_name != ''):
         # Example in MongoDB:
         #   db.getCollection('message_store').find({'_meta.name': 'waypoint__p1'})
-        instance = db.query_named('%s__%s' % (type_name, item_name), value_type)
+        instance = _sdb.query_named('%s__%s' % (type_name, item_name), value_type)
     else:
         # This is not the best approach because it makes a lot of queries to
         # the db. The query in MongoDB is something like:
@@ -99,15 +98,15 @@ def _find_instance(item_name, type_name=None, value_type=None):
         # And here the code should be something like:
         #   meta = {}
         #   meta['name'] = '{$regex: /p1/}'
-        #   p1 = kbi.db.query(Pose._type, {}, meta, True, [], {}, 0)
+        #   p1 = db.query(Pose._type, {}, meta, True, [], {}, 0)
         #   print "db.query 3\n", p1
         #
         # Unfortunately, this code is not working as I am not able to pass a regex
         # instruction to MongoDB using 'mongodb_store'. Therefore, I used a workaround
         # that implies getting types in domain and use them to get the instance.
-        res = services['get_domain_types']()
+        res = _services['get_domain_types']()
         for type_name in res.types:
-            instance = db.query_named('%s__%s' % (type_name, item_name), value_type)
+            instance = _sdb.query_named('%s__%s' % (type_name, item_name), value_type)
             if instance is not None:
                 break
 
@@ -118,59 +117,59 @@ def init_kb(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
 
-    global services
-    services['get_current_instances'] = \
+    global _services
+    _services['get_current_instances'] = \
         rospy.ServiceProxy(prefix + "/get_current_instances",
                            GetInstanceService)
-    services['update_knowledge_base'] = \
+    _services['update_knowledge_base'] = \
         rospy.ServiceProxy(prefix + "/update_knowledge_base",
                            KnowledgeUpdateService)
-    services['get_domain_predicates'] = \
+    _services['get_domain_predicates'] = \
         rospy.ServiceProxy(prefix + "/get_domain_predicates",
                            GetDomainAttributeService)
-    services['get_domain_predicate_details'] = \
+    _services['get_domain_predicate_details'] = \
         rospy.ServiceProxy(prefix + "/get_domain_predicate_details",
                            GetDomainPredicateDetailsService)
-    services['get_current_goals'] = \
+    _services['get_current_goals'] = \
         rospy.ServiceProxy(prefix + "/get_current_goals",
                            GetAttributeService)
-    services['get_current_knowledge'] = \
+    _services['get_current_knowledge'] = \
         rospy.ServiceProxy(prefix + "/get_current_knowledge",
                            GetAttributeService)
-    services['get_domain_operators'] = \
+    _services['get_domain_operators'] = \
         rospy.ServiceProxy(prefix + "/get_domain_operators",
                            GetDomainOperatorService)
-    services['get_domain_operator_details'] = \
+    _services['get_domain_operator_details'] = \
         rospy.ServiceProxy(prefix + "/get_domain_operator_details",
                            GetDomainOperatorDetailsService)
-    services['get_domain_types'] = \
+    _services['get_domain_types'] = \
         rospy.ServiceProxy(prefix + "/get_domain_types",
                            GetDomainTypeService)
-    services['planning'] = \
+    _services['planning'] = \
         rospy.ServiceProxy(prefix + "/planning_server",
                            Empty)
-    services['query'] = \
+    _services['query'] = \
         rospy.ServiceProxy(prefix + "/query_knowledge_base",
                            KnowledgeQueryService)
-    services['clear_knowledge'] = \
+    _services['clear_knowledge'] = \
         rospy.ServiceProxy(prefix + "/clear_knowledge_base",
                            Empty)
 
-    global db
-    db = MessageStoreProxy()
+    global _sdb
+    _sdb = MessageStoreProxy()
 
 
 def exist_instance(item_name):
-    instance_names = services['get_current_instances']("").instances
+    instance_names = _services['get_current_instances']("").instances
     return item_name in instance_names
 
 
 def add_instance(item_name, type_name, value=None):
     if value is not None:
-        db.insert_named('%s__%s' % (type_name, item_name), value)
-        types[type_name] = value.__class__._type
+        _sdb.insert_named('%s__%s' % (type_name, item_name), value)
+        _value_types[type_name] = value.__class__._type
         # print value.__class__._type
-    return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
+    return _services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
                                              KnowledgeItem(KB_ITEM_INSTANCE,
                                                            type_name,
                                                            item_name,
@@ -181,7 +180,7 @@ def update_instance(item_name, value):
     instance, type_name = _find_instance(item_name, None, None)
 
     if instance is not None:
-        db.update_named(item_name, value)
+        _sdb.update_named(item_name, value)
         return True
     else:
         return False
@@ -192,8 +191,7 @@ def get_instance(item_name, type_name=None, return_type=None):
 
 
 def rm_instance(item_name, type_name):
-    # db[type_name].remove({'name': item_name})
-    return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
+    return _services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
                                              KnowledgeItem(KB_ITEM_INSTANCE,
                                                            type_name,
                                                            item_name,
@@ -201,7 +199,7 @@ def rm_instance(item_name, type_name):
 
 
 def list_instances(type_name="", item_type=None):
-    instance_names = services['get_current_instances'](type_name).instances
+    instance_names = _services['get_current_instances'](type_name).instances
     if item_type:
         res = {}
         for item_name in instance_names:
@@ -219,20 +217,20 @@ def list_instances(type_name="", item_type=None):
 
 def add_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE, type_name)
-    return services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
+        return _services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE, type_name)
+    return _services['update_knowledge_base'](KB_UPDATE_ADD_KNOWLEDGE,
                                              _gen_predicate(type_name, **kwargs))
 
 
 def rm_predicate(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE, type_name)
-    return services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
+        return _services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE, type_name)
+    return _services['update_knowledge_base'](KB_UPDATE_RM_KNOWLEDGE,
                                              _gen_predicate(type_name, **kwargs))
 
 
 def list_predicates():
-    predicates = services['get_current_knowledge']('').attributes
+    predicates = _services['get_current_knowledge']('').attributes
     return predicates
 
 
@@ -243,20 +241,20 @@ def clear_predicates():
 
 def add_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL, type_name)
-    return services['update_knowledge_base'](KB_UPDATE_ADD_GOAL,
+        return _services['update_knowledge_base'](KB_UPDATE_ADD_GOAL, type_name)
+    return _services['update_knowledge_base'](KB_UPDATE_ADD_GOAL,
                                              _gen_predicate(type_name, **kwargs))
 
 
 def rm_goal(type_name, **kwargs):
     if isinstance(type_name, KnowledgeItem):
-        return services['update_knowledge_base'](KB_UPDATE_RM_GOAL, type_name)
-    return services['update_knowledge_base'](KB_UPDATE_RM_GOAL,
+        return _services['update_knowledge_base'](KB_UPDATE_RM_GOAL, type_name)
+    return _services['update_knowledge_base'](KB_UPDATE_RM_GOAL,
                                              _gen_predicate(type_name, **kwargs))
 
 
 def list_goals():
-    goals = services['get_current_goals']('').attributes
+    goals = _services['get_current_goals']('').attributes
     return goals
 
 
@@ -266,16 +264,16 @@ def clear_goals():
 
 
 def get_args(item):
-    global domain_items
-    if item not in domain_items:
-        res = services['get_domain_predicates']()
+    global _domain_items
+    if item not in _domain_items:
+        res = _services['get_domain_predicates']()
         for predicate in res.items:
-            domain_items[predicate.name] = keyval_to_dict(predicate.typed_parameters)
-            if item not in domain_items:
+            _domain_items[predicate.name] = keyval_to_dict(predicate.typed_parameters)
+            if item not in _domain_items:
                 return False  # not in domain...
-    return domain_items[item].keys()
+    return _domain_items[item].keys()
 
 
 def clear_all():
-    services['clear_knowledge']()
+    _services['clear_knowledge']()
     # After cleaning the KB we must clean all information in the SDB
