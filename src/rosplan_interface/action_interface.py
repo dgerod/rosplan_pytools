@@ -1,21 +1,39 @@
 """
-ROSPlan Action Interface
-
+ROSPlan Action interface
 Makes it easy to listen for actions and send feedback
 """
 
 import inspect
 import rospy
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
-from .utils import keyval_to_dict, dict_to_keyval
-
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
 from . import kb_interface as kbi
+from .utils import keyval_to_dict, dict_to_keyval
 
 feedback = None
 action_ids = {}
 registered_actions = []
 func_action = {}
+
+
+def _initialize_receiver():
+    actions = {}
+    for act in SimpleAction.__subclasses__() + Action.__subclasses__():
+        if not isinstance(act.name, list):
+            # Only one action is using this class. In case action
+            # name is not specified, name of the class is used
+            actions[act.name or act.__name__] = act
+        else:
+            # Multiple actions are using this class. Action names
+            # are specified as a list.
+            for name in act.name:
+                actions[name] = act
+
+    # for act in registered_actions:
+    #    actions[act[0]] = act[1]
+
+    return actions
+
 
 def start_actions(dispatch_topic_name=None,
                   feedback_topic_name=None,
@@ -43,14 +61,7 @@ def register_action(name, action):
 def action_receiver(msg):
 
     global action_ids
-
-    actions = {}
-    for act in SimpleAction.__subclasses__():
-        actions[act.name or act.__name__] = act
-    for act in Action.__subclasses__():
-        actions[act.name or act.__name__] = act
-    #for act in registered_actions:
-    #    actions[act[0]] = act[1]
+    actions = _initialize_receiver()
 
     if msg.name in actions:
         try:

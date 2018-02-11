@@ -1,22 +1,19 @@
 #! /usr/bin/env python
 
-"""
-For this example the knowledge base of ROSPlan must be running, and three
-waypoints with name p1, p2 and p3, must exist in it.
-"""
-
 import rospy
 from rosplan_interface import kb_interface as kbi
 from geometry_msgs.msg import Pose, Point, Quaternion
 
-def prepare_kb():
-    p = Pose(Point(-0.2, 0, 0), Quaternion(0, 0, 0, 1))
-    kbi.add_instance('p1', "place", p)
-    p = Pose(Point(-0.5, -0.4, 0), Quaternion(0, 0, 0, 1))
-    kbi.add_instance('p2', 'place', p)
-    p = Pose(Point(-1.0, -0.4, 0), Quaternion(0, 0, 0, 1))
-    kbi.add_instance('p3', 'place', p)
 
+def prepare_kb():
+    p = Pose(Point(0.25, .0, .0), Quaternion(0, 0, 0, 1))
+    kbi.add_instance('p1', "place", p)
+    p = Pose(Point(0.50, .0, .0), Quaternion(0, 0, 0, 1))
+    kbi.add_instance('p2', 'place', p)
+    p = Pose(Point(0.75, .0, .0), Quaternion(0, 0, 0, 1))
+    kbi.add_instance('p3', 'place', p)
+    p = Pose(Point(1.00, .0, .0), Quaternion(0, 0, 0, 1))
+    kbi.add_instance('p4', 'place', p)
 
 def retrieve_instances():
     p1, p1_type = kbi.get_instance('p1', 'place', Pose._type)
@@ -27,6 +24,8 @@ def retrieve_instances():
     kbi._value_types['place'] = Pose._type
     p3, p3_type = kbi.get_instance('p3', 'place')
     print 'instance:\n', p3
+    p4, p4_type = kbi.get_instance('p4')
+    print 'instance:\n', p4
 
 
 def main():

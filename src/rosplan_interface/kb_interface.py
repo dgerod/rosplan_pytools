@@ -186,8 +186,8 @@ def update_instance(item_name, value):
         return False
 
 
-def get_instance(item_name, type_name=None, return_type=None):
-    return _find_instance(item_name, type_name, return_type)
+def get_instance(item_name, type_name=None, value_type=None):
+    return _find_instance(item_name, type_name, value_type)
 
 
 def rm_instance(item_name, type_name):
