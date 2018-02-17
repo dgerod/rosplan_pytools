@@ -2,7 +2,7 @@ from diagnostic_msgs.msg import KeyValue
 
 
 def keyval_to_dict(keyval_list):
-    if keyval_list is None:
+    if keyval_list is None or keyval_list == []:
         return {}
     out = {}
     for item in keyval_list:

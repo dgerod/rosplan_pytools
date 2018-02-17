@@ -2,11 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan_interface import kb_interface as kbi
+from rosplan.controller import knowledge_base as kb
+
 
 def main():
-    kbi.init_kb()
-    kbi.clear_all()
+    kb.init()
+    kb.clear_all()
+
 
 if __name__ == '__main__':
     main()

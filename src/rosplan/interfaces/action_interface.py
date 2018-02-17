@@ -7,8 +7,8 @@ import inspect
 import rospy
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
-from . import kb_interface as kbi
-from .utils import keyval_to_dict, dict_to_keyval
+from rosplan.controller import knowledge_base as kbi
+from rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 feedback = None
 action_ids = {}
@@ -26,6 +26,12 @@ def _initialize_receiver():
         else:
             # Multiple actions are using this class. Action names
             # are specified as a list.
+            for name in act.name:
+                actions[name] = act
+
+    # Multiple actions are using this class. Action names
+    # are specified as a list.
+    for act in ActionDispatcher.__subclasses__():
             for name in act.name:
                 actions[name] = act
 
@@ -49,6 +55,7 @@ def start_actions(dispatch_topic_name=None,
                      ActionDispatch,
                      action_receiver)
     rospy.loginfo("Started listening for planner actions")
+
     if block:
         rospy.spin()
 
@@ -71,11 +78,10 @@ def action_receiver(msg):
                                        keyval_to_dict(msg.parameters))
             action_ids[msg.action_id] = action
 
-            if action.__class__ == SimpleAction:
-                action.start(**keyval_to_dict(msg.parameters))
+            if issubclass(action.__class__, ActionDispatcher):
+                action.execute(msg.name, **keyval_to_dict(msg.parameters))
             else:
                 action.execute(**keyval_to_dict(msg.parameters))
-            action.report_success()
 
         except Exception as e:
             rospy.logwarn("action '%s' failed." % msg.name, exc_info=1)
@@ -126,6 +132,9 @@ class SimpleAction(object):
     def report_failed(self):
         self.feedback("action failed")
 
+    def execute(self, **kwargs):
+        return self.start(**kwargs)
+
     def start(self, **kwargs):
         """
         Runs the given task. An exception here will report 'fail', and a
@@ -162,6 +171,23 @@ class SimpleAction(object):
         else:
             rospy.logwarn("SimpleAction %s [%i] is not paused." %
                           (self.name, self.action_id))
+
+
+class ActionDispatcher(object):
+
+    name = []
+
+    def __init__(self, action_id, dispatch_time, feedback_pub, arguments):
+        self.action_id = action_id
+        self.dispatch_time = dispatch_time
+
+    def execute(self, action_name, **kwargs):
+        return self.start(action_name, **kwargs)
+
+    def start(self, action_name, **kwargs):
+        rospy.logwarn("There is supposed to be some code for %s.start()" %
+                      self.name)
+        raise NotImplementedError
 
 
 class CheckActionAndProcessEffects(object):
@@ -343,10 +369,12 @@ class Action(object):
         checker = CheckActionAndProcessEffects(self.__class__.name)
         checker.prepare()
 
-        if checker.check_parameters(kwargs) == False:
+        if not checker.check_parameters(kwargs):
             raise ValueError("Action arguments are incorrect")
-        if self.start(**kwargs) == True:
-            checker.apply_effects()
+        if not self.start(**kwargs):
+            return False
+        checker.apply_effects()
+        return True
 
     def start(self, **kwargs):
         """
@@ -396,8 +424,6 @@ def planner_action(action_name):
 
     def decorator(func):
 
-        global func_action
-
         class FunctionToAction(SimpleAction):
             name = action_name.lower()
             # Lowercase due to ROSPlan quirks
@@ -410,6 +436,7 @@ def planner_action(action_name):
                 else:
                     func(**kwargs)
 
+        global func_action
         func_action[action_name.lower()] = FunctionToAction
         # we don't actually need to do anything,
         #  just subclass Action, and dodge lazyness

@@ -1,25 +1,21 @@
 """
-  ROSPlan Planning System Interface
-
+  ROSPlan Planning System interface
   A simple way to set, poll, and interrupt plans.
-
 """
 
 import rospy
 from time import sleep
 from std_msgs.msg import String
 
-
 cmd_pub = None
 status = None
-
 
 # Quick reference to avoid looking at ROSPlan source.
 #   STATUSES = ['Ready', 'Planning', 'Dispatching', 'Paused']
 #   COMMANDS = ['plan', 'pause', 'resume', 'cancel']
 
 
-def init_dispatch():
+def init():
     global cmd_pub
     cmd_pub = rospy.Publisher('/kcl_rosplan/planning_commands', String)
     rospy.Subscriber('kcl_rosplan/system_state', String, set_dispatch_status)

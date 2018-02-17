@@ -1,11 +1,8 @@
 import rospy
-
 from .action_interface import start_actions
-from .kb_interface import init_kb
-from .plan_interface import init_dispatch
 
 
-def init_rosplan(block=False):
+def init_interfaces(block=False):
     """
     Initialize all the things!!
 
@@ -19,11 +16,9 @@ def init_rosplan(block=False):
       `rospy.init_node(...)`.
     """
     start_actions()
-    init_kb()
-    init_dispatch()
 
     if block:
         rospy.spin()
 
 
-init = init_rosplan
+init = init_interfaces

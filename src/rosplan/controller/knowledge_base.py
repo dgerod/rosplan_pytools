@@ -12,11 +12,10 @@ from rosplan_knowledge_msgs.srv import \
     GetInstanceService, GetAttributeService, GetDomainAttributeService, \
     GetDomainTypeService, GetDomainOperatorService, \
     GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
-
 from std_srvs.srv import Empty
 from rosplan_knowledge_msgs.msg import KnowledgeItem
 from mongodb_store.message_store import MessageStoreProxy
-from .utils import keyval_to_dict, dict_to_keyval
+from rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 KB_UPDATE_ADD_KNOWLEDGE = 0
 KB_UPDATE_RM_KNOWLEDGE = 2
@@ -113,7 +112,7 @@ def _find_instance(item_name, type_name=None, value_type=None):
     return instance, type_name
 
 
-def init_kb(prefix=None):
+def init(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
 
