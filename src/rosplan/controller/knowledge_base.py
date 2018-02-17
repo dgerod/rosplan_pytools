@@ -78,7 +78,7 @@ def _find_instance(item_name, type_name=None, value_type=None):
         return None, None
 
     # In case value type is not set find in the local storage.
-    if value_type is None:
+    if value_type is None and type_name is not None:
         if _value_types[type_name] is not None:
             value_type = _value_types[type_name]
         else:
