@@ -18,16 +18,11 @@ func_action = {}
 
 def _initialize_receiver():
     actions = {}
+
+    # Only one action is using this class. In case action
+    # name is not specified, name of the class is used
     for act in SimpleAction.__subclasses__() + Action.__subclasses__():
-        if not isinstance(act.name, list):
-            # Only one action is using this class. In case action
-            # name is not specified, name of the class is used
             actions[act.name or act.__name__] = act
-        else:
-            # Multiple actions are using this class. Action names
-            # are specified as a list.
-            for name in act.name:
-                actions[name] = act
 
     # Multiple actions are using this class. Action names
     # are specified as a list.
@@ -173,7 +168,7 @@ class SimpleAction(object):
                           (self.name, self.action_id))
 
 
-class ActionDispatcher(object):
+class ActionSink(object):
 
     name = []
 
