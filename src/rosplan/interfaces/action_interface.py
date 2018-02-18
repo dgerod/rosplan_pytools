@@ -19,14 +19,14 @@ func_action = {}
 def _initialize_receiver():
     actions = {}
 
-    # Only one action is using this class. In case action
+    # Only one PDDL action is using this class. In case action
     # name is not specified, name of the class is used
     for act in SimpleAction.__subclasses__() + Action.__subclasses__():
             actions[act.name or act.__name__] = act
 
-    # Multiple actions are using this class. Action names
-    # are specified as a list.
-    for act in ActionDispatcher.__subclasses__():
+    # This class is able to receive multiple PDDL actions. Action
+    # names are specified as a list.
+    for act in ActionSink.__subclasses__():
             for name in act.name:
                 actions[name] = act
 
@@ -49,7 +49,7 @@ def _action_receiver(msg):
                                        keyval_to_dict(msg.parameters))
             action_ids[msg.action_id] = action
 
-            if issubclass(action.__class__, ActionDispatcher):
+            if issubclass(action.__class__, ActionSink):
                 action.execute(msg.name, **keyval_to_dict(msg.parameters))
             else:
                 action.execute(**keyval_to_dict(msg.parameters))
@@ -99,9 +99,10 @@ class SimpleAction(object):
     Receives an action from ROSPlan, automatically sending feedback.
     Extend and set the 'name' attribute (not 'self.name') to define the action.
     
-    IMPORTANT: You have to set effects (or postconditions) in your code. 
-    If the effects are not set by the time your code completes, ROSPlan may 
-    assume the next action cannot be executed and trigger a replan.
+    IMPORTANT: You have to check parameters (pre-conditions) and set effects
+    (or post-conditions) in your code. If the effects are not set by the time
+    your code completes, ROSPlan may assume the next action cannot be executed
+    and trigger a re-plan.
     """
     name = ""
 
@@ -332,9 +333,9 @@ class Action(object):
     Receives an action from ROSPlan, automatically sending feedback.
     Extend and set the 'name' attribute (not 'self.name') to define the action.
 
-    IMPORTANT: You DON'T have to set effects (or postconditions) in your code. 
-    As this class set effects (or postconditions) by itself in case the action
-    does not fail.
+    IMPORTANT: You DON'T have to check parameters (pre-conditions) neither set
+    effects (or post-conditions) in your code. As this class set effects by
+    itself in case the action does not fail.
     """
     name = ""
 
@@ -409,9 +410,9 @@ class Action(object):
                           (self.name, self.action_id))
 
 
-def planner_action(action_name):
+def planner_simple_action(action_name):
     """
-    Decorator to convert a function into an action.
+    Decorator to convert a function into an simple action.
 
     action_name -- The PDDL name of the action.
 

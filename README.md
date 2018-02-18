@@ -34,7 +34,7 @@ An extremely important note is that depending on which approach is used to creat
 This is only good for quick-and-dirty methods, as they do not support pausing or cancelling. Note that the parameter names match the pddl file.
 
 ```
-@planner.planner_action
+@planner.planner_simple_action
 def talk(msg, loc):
   say_stuff()
   set_postconditions()
@@ -43,7 +43,7 @@ def talk(msg, loc):
 `receive_action` can also take arguments if you don't want to use the same name (or it's taken). Also, argument order does not matter, just the names.
 
 ```
-@planner.planner_action('talk')
+@planner.planner_simple_action('talk')
 def different_fn_name(loc, msg):
   say_stuff()
   set_postconditions()
@@ -51,7 +51,7 @@ def different_fn_name(loc, msg):
 
 An action can also fail by raising an exception. ROSPlan will handle that and trigger a replan
 ```
-@planner.planner_action
+@planner.planner_simple_action
 def talk(msg, loc):
   stutter_horribly()
   raise OhDearException()
@@ -67,9 +67,10 @@ This is the way to make more robust actions, and function-based actions are auto
 class Talker(planner.SimpleAction):
   name = "talk"
   
-  def start(msg, loc):
+  def start(arguments):
+    check_preconditions()
     say_stuff()
-    set_postconditions()
+    set_effects()
     
   def cancel():
     shut_up()
@@ -88,24 +89,39 @@ That's it! The relevant code will be called as ROSPlan dispatches it (so long as
 
 When you use `SimpleAction` class to create an action you have to set postconditions (or effects) in your code. While setting postconditions is not necessary if you use `Action` class, as this class does it internally using `CheckActionAndProcessEffects` class. 
 
+A special class that could receive for multiple actions exists, it is the `ActionSink`. In addition to the arguments, it is receiving the name of the action that is requested.  
+
+```
+class Listener(planner.ActionSink):
+  name = ["talker_1", "talker_2"]
+  
+  def start(self, action_name, arguments):
+    say_stuff()    
+```
+
 ## Manipulating ROSPlan
 
 Sometimes you want to tell ROSPlan what to do. To do that, you first need to add goals, then run the planner.
 
 ```
-import rosplan_interface as planner
-
+import rosplan
+import rosplan.controller.knowledge_base as kb
+import rosplan.controller.planning_system as ps
+  
+rosplan.init()
+  
 # Using the KB
-planner.add_instance('location', 'loc1')
+kb.add_instance('location', 'loc1')
+  
 # You can store stuff into the scene database with a third arg
-planner.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
-planner.add_goal('robotat', loc='loc1')
-planner.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
-
+kb.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
+kb.add_goal('robotat', loc='loc1')
+kb.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
+  
 # Then, plan and execute!
-planner.plan()
-
+ps.plan()
+  
 # Now, let's try stopping it
 time.sleep(2)
-planner.cancel()
+ps.cancel()
 ```

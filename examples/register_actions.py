@@ -28,17 +28,17 @@ class DemoMultipleActions(ActionSink):
         return True
 
 
-@planner_action
+@planner_simple_action
 def sample():
     print "Sample!!!"
 
 
-@planner_action("foobar")
+@planner_simple_action("foobar")
 def other():
     print "Hello world."
 
 
-@planner_action("bad")
+@planner_simple_action("bad")
 def bad(param="Bar"):
     print "Oh no, an error. %s" % param
     raise Exception
