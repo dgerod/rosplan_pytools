@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+import rospy
 from rosplan.controller import knowledge_base as kb
 from geometry_msgs.msg import Pose, Point, Quaternion
 
@@ -14,6 +15,7 @@ def prepare_kb():
     kb.add_instance('p3', 'place', p)
     p = Pose(Point(1.00, .0, .0), Quaternion(0, 0, 0, 1))
     kb.add_instance('p4', 'place', p)
+
 
 def retrieve_instances():
     p1, p1_type = kb.get_instance('p1', 'place', Pose._type)
@@ -29,6 +31,7 @@ def retrieve_instances():
 
 
 def main():
+    rospy.init_node("pytools_ask_for_instance")
 
     kb.init()
     kb.clear_predicates()

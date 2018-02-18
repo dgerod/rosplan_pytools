@@ -41,31 +41,7 @@ def _initialize_receiver():
     return actions
 
 
-def start_actions(dispatch_topic_name=None,
-                  feedback_topic_name=None,
-                  block=False):
-    global feedback
-    dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
-    feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
-    feedback = rospy.Publisher(feedback_topic_name,
-                               ActionFeedback,
-                               queue_size=10)
-
-    rospy.Subscriber(dispatch_topic_name,
-                     ActionDispatch,
-                     action_receiver)
-    rospy.loginfo("Started listening for planner actions")
-
-    if block:
-        rospy.spin()
-
-
-def register_action(name, action):
-    global registered_actions
-    registered_actions.append((name,action))
-
-
-def action_receiver(msg):
+def _action_receiver(msg):
 
     global action_ids
     actions = _initialize_receiver()
@@ -97,6 +73,30 @@ def action_receiver(msg):
     elif msg.name == 'resume_action':
         if msg.action_id in action_ids:
             action_ids[msg.action_id].resume()
+
+
+def start_actions(dispatch_topic_name=None,
+                  feedback_topic_name=None,
+                  is_blocked=False):
+    global feedback
+    dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
+    feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
+    feedback = rospy.Publisher(feedback_topic_name,
+                               ActionFeedback,
+                               queue_size=10)
+
+    rospy.Subscriber(dispatch_topic_name,
+                     ActionDispatch,
+                     _action_receiver)
+    rospy.loginfo("Started listening for planner actions")
+
+    if is_blocked:
+        rospy.spin()
+
+
+def register_action(name, action):
+    global registered_actions
+    registered_actions.append((name,action))
 
 
 class SimpleAction(object):

@@ -2,7 +2,8 @@ import rospy
 from controller import init_controller
 from interfaces import init_interfaces
 
-def init_rosplan(block=False):
+
+def init(is_blocked=False):
     """
     Initialize all the things!!
 
@@ -16,7 +17,5 @@ def init_rosplan(block=False):
       `rospy.init_node(...)`.
     """
     init_controller()
-    init_interfaces(block)
+    init_interfaces(is_blocked)
 
-
-init = init_rosplan
