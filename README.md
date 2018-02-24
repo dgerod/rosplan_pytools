@@ -1,21 +1,18 @@
 # rosplan_pytools
 An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). This repository is a spin-off of [rosplan_interface](https://github.com/yochan-lab/rosplan_interface).
 
-
-
 ## How to use
-Somewhere in your code, you have to import and initialize `rosplan_interface`. Do the initializing *after* you have initialized rospy.
+Somewhere in your code, you have to import and initialize `rosplan`. Do the initializing *after* you have initialized rospy.
 ```
-import rosplan_interface as planner
+import rosplan
 
 if __name__=="__main__":
   rospy.init_node('name')
-  planner.init()
+  rosplan.init()
   rospy.spin()
 ```
 
 ## Hooking in actions
-
 You can use two method for hooking in new actions for ROSPlan. This should be make in conjunction with your domain.pddl file, as it uses the names of the pddl actions to find your functions. The following are based on the following:
 
 ```
@@ -37,7 +34,7 @@ This is only good for quick-and-dirty methods, as they do not support pausing or
 @planner.planner_simple_action
 def talk(msg, loc):
   say_stuff()
-  set_postconditions()
+  set_effects()
 ```
 
 `receive_action` can also take arguments if you don't want to use the same name (or it's taken). Also, argument order does not matter, just the names.
@@ -46,7 +43,7 @@ def talk(msg, loc):
 @planner.planner_simple_action('talk')
 def different_fn_name(loc, msg):
   say_stuff()
-  set_postconditions()
+  set_effects()
 ```
 
 An action can also fail by raising an exception. ROSPlan will handle that and trigger a replan
@@ -60,7 +57,6 @@ def talk(msg, loc):
 In case you are using function-based approach you have to set postconditions (or effects) in your code.
 
 ### Class-Based
-
 This is the way to make more robust actions, and function-based actions are automatically redefined into a class.
 
 ```
@@ -118,7 +114,7 @@ kb.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ov
 kb.add_goal('robotat', loc='loc1')
 kb.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
   
-# Then, plan and execute!
+# Then, plan and execute! using PS
 ps.plan()
   
 # Now, let's try stopping it
