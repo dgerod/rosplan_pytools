@@ -1,21 +1,45 @@
 #! /usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import rospy
-from geometry_msgs.msg import Pose
-from rosplan_interface import kb_interface as kbi
+from rosplan.controller import knowledge_base as kb
+from geometry_msgs.msg import Pose, Point, Quaternion
 
-# For this example the knowledge base of ROSPlan must be running, and two
-# waypoints with name p1 and p2 must exist in it.
+
+def prepare_kb():
+    p = Pose(Point(0.25, .0, .0), Quaternion(0, 0, 0, 1))
+    kb.add_instance('p1', "place", p)
+    p = Pose(Point(0.50, .0, .0), Quaternion(0, 0, 0, 1))
+    kb.add_instance('p2', 'place', p)
+    p = Pose(Point(0.75, .0, .0), Quaternion(0, 0, 0, 1))
+    kb.add_instance('p3', 'place', p)
+    p = Pose(Point(1.00, .0, .0), Quaternion(0, 0, 0, 1))
+    kb.add_instance('p4', 'place', p)
+
+
+def retrieve_instances():
+    p1, p1_type = kb.get_instance('p1', 'place', Pose._type)
+    print 'instance:\n', p1
+    p2, p2_type = kb.get_instance('p2', None, Pose._type)
+    print 'instance:\n', p2
+
+    kb._value_types['place'] = Pose._type
+    p3, p3_type = kb.get_instance('p3', 'place')
+    print 'instance:\n', p3
+    p4, p4_type = kb.get_instance('p4')
+    print 'instance:\n', p4
+
 
 def main():
+    rospy.init_node("pytools_ask_for_instance")
 
-    kbi.init_kb()
+    kb.init()
+    kb.clear_predicates()
+    kb.clear_goals()
 
-    p1, p1_type = kbi.get_instance('waypoint', 'p1', Pose._type)
-    print 'instance:\n', p1
+    prepare_kb()
+    retrieve_instances()
 
-    p2, p2_type = kbi.get_instance(None, 'p2', Pose._type)
-    print 'instance:\n', p2
 
 if __name__ == '__main__':
     main()

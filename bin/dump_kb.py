@@ -2,18 +2,20 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan_interface import kb_interface as kbi
+from rosplan.controller import knowledge_base as kb
+
 
 def main():
-    kbi.init_kb()
+    kb.init()
     print "Predicates ---"
-    for predicate in kbi.list_predicates():
+    for predicate in kb.list_predicates():
         print "[" + str(predicate) + "]"
     print "\nInstances ---"
-    print str(kbi.list_instances())
+    print str(kb.list_instances())
     print "\nGoals ---"
-    for goal in kbi.list_goals():
+    for goal in kb.list_goals():
         print "[" + str(goal) + "]"
+
 
 if __name__ == '__main__':
     main()

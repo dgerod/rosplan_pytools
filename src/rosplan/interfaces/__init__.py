@@ -1,14 +1,8 @@
-# 'noqa' tells the linter to ignore star warnings.
-#   If this file ever becomes complex, remove the
-#   stars and add explicit imports.
-from .action_interface import * # noqa
-from .utils import * # noqa
-from .kb_interface import * # noqa
-from .plan_interface import * # noqa
 import rospy
+from .action_interface import start_actions
 
 
-def init_rosplan(block=False):
+def init_interfaces(block=False):
     """
     Initialize all the things!!
 
@@ -22,9 +16,9 @@ def init_rosplan(block=False):
       `rospy.init_node(...)`.
     """
     start_actions()
-    init_kb()
-    init_dispatch()
+
     if block:
         rospy.spin()
 
-init = init_rosplan
+
+init = init_interfaces

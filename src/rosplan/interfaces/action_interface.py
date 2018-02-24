@@ -1,56 +1,45 @@
 """
-ROSPlan Action Interface
-
+ROSPlan Action interface
 Makes it easy to listen for actions and send feedback
 """
 
 import inspect
 import rospy
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
-from .utils import keyval_to_dict, dict_to_keyval
-
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
-from . import kb_interface as kbi
+from rosplan.controller import knowledge_base as kbi
+from rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 feedback = None
 action_ids = {}
 registered_actions = []
 func_action = {}
 
-def start_actions(dispatch_topic_name=None,
-                  feedback_topic_name=None,
-                  block=False):
-    global feedback
-    dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
-    feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
-    feedback = rospy.Publisher(feedback_topic_name,
-                               ActionFeedback,
-                               queue_size=10)
 
-    rospy.Subscriber(dispatch_topic_name,
-                     ActionDispatch,
-                     action_receiver)
-    rospy.loginfo("Started listening for planner actions")
-    if block:
-        rospy.spin()
+def _initialize_receiver():
+    actions = {}
 
+    # Only one PDDL action is using this class. In case action
+    # name is not specified, name of the class is used
+    for act in SimpleAction.__subclasses__() + Action.__subclasses__():
+            actions[act.name or act.__name__] = act
 
-def register_action(name, action):
-    global registered_actions
-    registered_actions.append((name,action))
+    # This class is able to receive multiple PDDL actions. Action
+    # names are specified as a list.
+    for act in ActionSink.__subclasses__():
+            for name in act.name:
+                actions[name] = act
+
+    # for act in registered_actions:
+    #    actions[act[0]] = act[1]
+
+    return actions
 
 
-def action_receiver(msg):
+def _action_receiver(msg):
 
     global action_ids
-
-    actions = {}
-    for act in SimpleAction.__subclasses__():
-        actions[act.name or act.__name__] = act
-    for act in Action.__subclasses__():
-        actions[act.name or act.__name__] = act
-    #for act in registered_actions:
-    #    actions[act[0]] = act[1]
+    actions = _initialize_receiver()
 
     if msg.name in actions:
         try:
@@ -60,11 +49,10 @@ def action_receiver(msg):
                                        keyval_to_dict(msg.parameters))
             action_ids[msg.action_id] = action
 
-            if action.__class__ == SimpleAction:
-                action.start(**keyval_to_dict(msg.parameters))
+            if issubclass(action.__class__, ActionSink):
+                action.execute(msg.name, **keyval_to_dict(msg.parameters))
             else:
                 action.execute(**keyval_to_dict(msg.parameters))
-            action.report_success()
 
         except Exception as e:
             rospy.logwarn("action '%s' failed." % msg.name, exc_info=1)
@@ -82,14 +70,39 @@ def action_receiver(msg):
             action_ids[msg.action_id].resume()
 
 
+def start_actions(dispatch_topic_name=None,
+                  feedback_topic_name=None,
+                  is_blocked=False):
+    global feedback
+    dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
+    feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
+    feedback = rospy.Publisher(feedback_topic_name,
+                               ActionFeedback,
+                               queue_size=10)
+
+    rospy.Subscriber(dispatch_topic_name,
+                     ActionDispatch,
+                     _action_receiver)
+    rospy.loginfo("Started listening for planner actions")
+
+    if is_blocked:
+        rospy.spin()
+
+
+def register_action(name, action):
+    global registered_actions
+    registered_actions.append((name,action))
+
+
 class SimpleAction(object):
     """
     Receives an action from ROSPlan, automatically sending feedback.
     Extend and set the 'name' attribute (not 'self.name') to define the action.
     
-    IMPORTANT: You have to set effects (or postconditions) in your code. 
-    If the effects are not set by the time your code completes, ROSPlan may 
-    assume the next action cannot be executed and trigger a replan.
+    IMPORTANT: You have to check parameters (pre-conditions) and set effects
+    (or post-conditions) in your code. If the effects are not set by the time
+    your code completes, ROSPlan may assume the next action cannot be executed
+    and trigger a re-plan.
     """
     name = ""
 
@@ -114,6 +127,9 @@ class SimpleAction(object):
 
     def report_failed(self):
         self.feedback("action failed")
+
+    def execute(self, **kwargs):
+        return self.start(**kwargs)
 
     def start(self, **kwargs):
         """
@@ -151,6 +167,23 @@ class SimpleAction(object):
         else:
             rospy.logwarn("SimpleAction %s [%i] is not paused." %
                           (self.name, self.action_id))
+
+
+class ActionSink(object):
+
+    name = []
+
+    def __init__(self, action_id, dispatch_time, feedback_pub, arguments):
+        self.action_id = action_id
+        self.dispatch_time = dispatch_time
+
+    def execute(self, action_name, **kwargs):
+        return self.start(action_name, **kwargs)
+
+    def start(self, action_name, **kwargs):
+        rospy.logwarn("There is supposed to be some code for %s.start()" %
+                      self.name)
+        raise NotImplementedError
 
 
 class CheckActionAndProcessEffects(object):
@@ -300,9 +333,9 @@ class Action(object):
     Receives an action from ROSPlan, automatically sending feedback.
     Extend and set the 'name' attribute (not 'self.name') to define the action.
 
-    IMPORTANT: You DON'T have to set effects (or postconditions) in your code. 
-    As this class set effects (or postconditions) by itself in case the action
-    does not fail.
+    IMPORTANT: You DON'T have to check parameters (pre-conditions) neither set
+    effects (or post-conditions) in your code. As this class set effects by
+    itself in case the action does not fail.
     """
     name = ""
 
@@ -332,10 +365,12 @@ class Action(object):
         checker = CheckActionAndProcessEffects(self.__class__.name)
         checker.prepare()
 
-        if checker.check_parameters(kwargs) == False:
+        if not checker.check_parameters(kwargs):
             raise ValueError("Action arguments are incorrect")
-        if self.start(**kwargs) == True:
-            checker.apply_effects()
+        if not self.start(**kwargs):
+            return False
+        checker.apply_effects()
+        return True
 
     def start(self, **kwargs):
         """
@@ -375,17 +410,15 @@ class Action(object):
                           (self.name, self.action_id))
 
 
-def planner_action(action_name):
+def planner_simple_action(action_name):
     """
-    Decorator to convert a function into an action.
+    Decorator to convert a function into an simple action.
 
     action_name -- The PDDL name of the action.
 
     """
 
     def decorator(func):
-
-        global func_action
 
         class FunctionToAction(SimpleAction):
             name = action_name.lower()
@@ -399,6 +432,7 @@ def planner_action(action_name):
                 else:
                     func(**kwargs)
 
+        global func_action
         func_action[action_name.lower()] = FunctionToAction
         # we don't actually need to do anything,
         #  just subclass Action, and dodge lazyness
