@@ -9,10 +9,10 @@ def main():
     rospy.init_node("pytools_dipatch_action")
     dispatcher.init()
 
-    name = 'find_object'
-    parameters = {'c': 'c1', 'o': 'o1'}
+    name = "find_object"
+    parameters = {"c": "c1", "o": "o1"}
     dispatcher.send_action(name, **parameters)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

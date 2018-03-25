@@ -7,7 +7,7 @@ import inspect
 import rospy
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
-from rosplan.controller import knowledge_base as kbi
+from rosplan.controller import knowledge_base as kb
 from rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 feedback = None
@@ -59,13 +59,13 @@ def _action_receiver(msg):
             feedback.publish(ActionFeedback(msg.action_id,
                                             "action failed",
                                             dict_to_keyval(None)))
-    elif msg.name == 'cancel_action':
+    elif msg.name == "cancel_action":
         if msg.action_id in action_ids:
             action_ids[msg.action_id].cancel()
-    elif msg.name == 'pause_action':
+    elif msg.name == "pause_action":
         if msg.action_id in action_ids:
             action_ids[msg.action_id].pause()
-    elif msg.name == 'resume_action':
+    elif msg.name == "resume_action":
         if msg.action_id in action_ids:
             action_ids[msg.action_id].resume()
 
@@ -84,7 +84,6 @@ def start_actions(dispatch_topic_name=None,
                      ActionDispatch,
                      _action_receiver)
     rospy.loginfo("Started listening for planner actions")
-
     if is_blocked:
         rospy.spin()
 
@@ -112,26 +111,23 @@ class SimpleAction(object):
         self.feedback_pub = feedback_pub
         self.arguments = arguments
         self.status = "Ready"
-        self.report_enabled()
+        self._report_enabled()
 
-    def feedback(self, status, info=None):
+    def _feedback(self, status, info=None):
         self.feedback_pub.publish(ActionFeedback(self.action_id,
                                                  status,
                                                  dict_to_keyval(info)))
 
-    def report_enabled(self):
-        self.feedback("action enabled")
+    def _report_enabled(self):
+        self._feedback("action enabled")
 
-    def report_success(self):
-        self.feedback("action achieved")
+    def _report_success(self):
+        self._feedback("action achieved")
 
-    def report_failed(self):
-        self.feedback("action failed")
+    def _report_failed(self):
+        self._feedback("action failed")
 
-    def execute(self, **kwargs):
-        return self.start(**kwargs)
-
-    def start(self, **kwargs):
+    def _start(self, **kwargs):
         """
         Runs the given task. An exception here will report 'fail', and a
         completion will report success.
@@ -144,6 +140,9 @@ class SimpleAction(object):
         rospy.logwarn("There is supposed to be some code for %s.start()" %
                       self.name)
         raise NotImplementedError
+
+    def execute(self, **kwargs):
+        return self._start(**kwargs)
 
     def cancel(self):
         rospy.logwarn("SimpleAction %s [%i] has no cancel method." %
@@ -162,7 +161,7 @@ class SimpleAction(object):
         if self.status == "Paused":
             rospy.logwarn("SimpleAction %s [%i] is restarting." %
                           (self.name, self.action_id))
-            self.start(**self.arguments)
+            self._start(**self.arguments)
             self.status = "Resumed"
         else:
             rospy.logwarn("SimpleAction %s [%i] is not paused." %
@@ -176,14 +175,34 @@ class ActionSink(object):
     def __init__(self, action_id, dispatch_time, feedback_pub, arguments):
         self.action_id = action_id
         self.dispatch_time = dispatch_time
+        self.feedback_pub = feedback_pub
+        self.arguments = arguments
 
-    def execute(self, action_name, **kwargs):
-        return self.start(action_name, **kwargs)
+    def _feedback(self, status, info=None):
+        self.feedback_pub.publish(ActionFeedback(self.action_id,
+                                                 status,
+                                                 dict_to_keyval(info)))
 
-    def start(self, action_name, **kwargs):
+    def _report_enabled(self):
+        self._feedback("action enabled")
+
+    def _report_success(self):
+        self._feedback("action achieved")
+
+    def _report_failed(self):
+        self._feedback("action failed")
+
+    def _start(self, action_name, **kwargs):
         rospy.logwarn("There is supposed to be some code for %s.start()" %
                       self.name)
         raise NotImplementedError
+
+    def execute(self, action_name, **kwargs):
+        self._report_enabled()
+        if self._start(action_name, **kwargs):
+            self._report_success()
+        else:
+            self._report_failed()
 
 
 class CheckActionAndProcessEffects(object):
@@ -194,17 +213,15 @@ class CheckActionAndProcessEffects(object):
     NOTE: Based on RPActionInterface class of 'ROSPlan/rosplan_planning_system.
     """
     def __init__(self, action_name, prefix="/kcl_rosplan"):
-        rospy.loginfo("ProcessEffectOfAction::init")
-
         self.services = {}
 
         rospy.wait_for_service(prefix + "/get_domain_operator_details")
-        self.services['get_domain_operator_details'] = \
+        self.services["get_domain_operator_details"] = \
             rospy.ServiceProxy(prefix + "/get_domain_operator_details",
                                GetDomainOperatorDetailsService)
 
         rospy.wait_for_service(prefix + "/get_domain_predicate_details")
-        self.services['get_domain_predicate_details'] = \
+        self.services["get_domain_predicate_details"] = \
             rospy.ServiceProxy(prefix + "/get_domain_predicate_details",
                                GetDomainPredicateDetailsService)
 
@@ -220,7 +237,7 @@ class CheckActionAndProcessEffects(object):
         #
         # ---
 
-        res = self.services['get_domain_operator_details'](action_name)
+        res = self.services["get_domain_operator_details"](action_name)
         self.op = res.op
         self.params = res.op.formula
 
@@ -228,16 +245,6 @@ class CheckActionAndProcessEffects(object):
         # ---
 
         predicate_names = []
-
-        # Effects
-        for effect in self.op.at_start_add_effects:
-            predicate_names.append(effect.name)
-        for effect in self.op.at_start_del_effects:
-            predicate_names.append(effect.name)
-        for effect in self.op.at_end_add_effects:
-            predicate_names.append(effect.name)
-        for effect in self.op.at_end_del_effects:
-            predicate_names.append(effect.name)
 
         # Simple conditions
         for condition in self.op.at_start_simple_condition:
@@ -255,22 +262,37 @@ class CheckActionAndProcessEffects(object):
         for condition in self.op.at_end_neg_condition:
             predicate_names.append(condition.name)
 
+        # Effects
+        for effect in self.op.at_start_add_effects:
+            predicate_names.append(effect.name)
+        for effect in self.op.at_start_del_effects:
+            predicate_names.append(effect.name)
+        for effect in self.op.at_end_add_effects:
+            predicate_names.append(effect.name)
+        for effect in self.op.at_end_del_effects:
+            predicate_names.append(effect.name)
+
         return predicate_names
 
     def _fetch_details_of_predicates(self, predicate_collection):
         self.predicates = {}
         for predicate_name in predicate_collection:
             if predicate_name not in self.predicates:
-                res = self.services['get_domain_predicate_details'](predicate_name)
+                res = self.services["get_domain_predicate_details"](predicate_name)
                 self.predicates[predicate_name] = res.predicate
-                print(res.predicate)
+                #print(res.predicate)
 
     def prepare(self):
+        rospy.loginfo("[RPpt][CAPE] prepare")
+
         predicate_collection = self._fetch_predicates_from_domain(self.pddl_action)
         self._fetch_details_of_predicates(predicate_collection)
 
     def check_parameters(self, arguments):
 
+        rospy.loginfo("[RPpt][CAPE] check parameters")
+
+        # Only check parameters, pre-conditions are not considered
         found = [False] * len(self.params.typed_parameters)
 
         for pdx, parameter in enumerate(self.params.typed_parameters):
@@ -287,6 +309,8 @@ class CheckActionAndProcessEffects(object):
 
     def apply_effects(self):
 
+        rospy.loginfo("[RPpt][CAPE] apply effects")
+
         # Simple start del effects
         for edx, effect in enumerate(self.op.at_start_del_effects):
             effect_name = effect.name
@@ -295,7 +319,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kbi.rm_predicate(effect_name, **effect_value)
+            kb.rm_predicate(effect_name, **effect_value)
 
         # Simple start add effects
         for edx, effect in enumerate(self.op.at_start_add_effects):
@@ -305,7 +329,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kbi.add_predicate(effect_name, **effect_value)
+            kb.add_predicate(effect_name, **effect_value)
 
         # Simple end del effects
         for edx, effect in enumerate(self.op.at_end_del_effects):
@@ -315,7 +339,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kbi.rm_predicate(effect_name, **effect_value)
+            kb.rm_predicate(effect_name, **effect_value)
 
         # Simple end add effects
         for edx, effect in enumerate(self.op.at_end_add_effects):
@@ -325,7 +349,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kbi.add_predicate(effect_name, **effect_value)
+            kb.add_predicate(effect_name, **effect_value)
 
 
 class Action(object):
@@ -345,34 +369,23 @@ class Action(object):
         self.feedback_pub = feedback_pub
         self.arguments = arguments
         self.status = "Ready"
-        self.report_enabled()
+        self._report_enabled()
 
-    def feedback(self, status, info=None):
+    def _feedback(self, status, info=None):
         self.feedback_pub.publish(ActionFeedback(self.action_id,
                                                  status,
                                                  dict_to_keyval(info)))
 
-    def report_enabled(self):
-        self.feedback("action enabled")
+    def _report_enabled(self):
+        self._feedback("action enabled")
 
-    def report_success(self):
-        self.feedback("action achieved")
+    def _report_success(self):
+        self._feedback("action achieved")
 
-    def report_failed(self):
-        self.feedback("action failed")
+    def _report_failed(self):
+        self._feedback("action failed")
 
-    def execute(self, **kwargs):
-        checker = CheckActionAndProcessEffects(self.__class__.name)
-        checker.prepare()
-
-        if not checker.check_parameters(kwargs):
-            raise ValueError("Action arguments are incorrect")
-        if not self.start(**kwargs):
-            return False
-        checker.apply_effects()
-        return True
-
-    def start(self, **kwargs):
+    def _start(self, **kwargs):
         """
         Runs the given task. An exception here will report 'fail', and a
         completion will report success.
@@ -385,6 +398,17 @@ class Action(object):
         rospy.logwarn("There is supposed to be some code for %s.execute()" %
                       self.name)
         raise NotImplementedError
+
+    def execute(self, **kwargs):
+        checker = CheckActionAndProcessEffects(self.__class__.name)
+        checker.prepare()
+
+        if not checker.check_parameters(kwargs):
+            raise ValueError("Action arguments are incorrect")
+        if not self._start(**kwargs):
+            return False
+        checker.apply_effects()
+        return True
 
     def cancel(self):
         rospy.logwarn("Action %s [%i] has no cancel method." %
@@ -403,7 +427,7 @@ class Action(object):
         if self.status == "Paused":
             rospy.logwarn("Action %s [%i] is restarting." %
                           (self.name, self.action_id))
-            self.start(**self.arguments)
+            self._start(**self.arguments)
             self.status = "Resumed"
         else:
             rospy.logwarn("Action %s [%i] is not paused." %
@@ -421,13 +445,12 @@ def planner_simple_action(action_name):
     def decorator(func):
 
         class FunctionToAction(SimpleAction):
-            name = action_name.lower()
-            # Lowercase due to ROSPlan quirks
+            name = action_name.lower()  # Lowercase due to ROSPlan quirks
             _spec = inspect.getargspec(func)
 
             def start(self, duration=0, **kwargs):
                 # Check whether function supports a timeout
-                if 'duration' in self._spec.args or self._spec.keywords:
+                if "duration" in self._spec.args or self._spec.keywords:
                     func(duration, **kwargs)
                 else:
                     func(**kwargs)
@@ -435,7 +458,7 @@ def planner_simple_action(action_name):
         global func_action
         func_action[action_name.lower()] = FunctionToAction
         # we don't actually need to do anything,
-        #  just subclass Action, and dodge lazyness
+        # just subclass Action, and dodge lazyness
         return func
 
     # Be smart if not called with parens

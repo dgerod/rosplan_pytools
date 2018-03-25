@@ -10,7 +10,7 @@ def init(prefix=None):
         prefix = "/kcl_rosplan"
 
     global _action_dispatch_publisher
-    _action_dispatch_publisher = rospy.Publisher(prefix + '/action_dispatch',
+    _action_dispatch_publisher = rospy.Publisher(prefix + "/action_dispatch",
                                                  ActionDispatch,
                                                  queue_size=10)
 

@@ -13,7 +13,7 @@ class DemoSimpleAction(SimpleAction):
 
 
 class DemoActionWithEffects(Action):
-    name = 'demo3'
+    name = "demo3"
 
     def start(self, **kwargs):
         print "Demo 3!!!"
@@ -24,7 +24,7 @@ class DemoMultipleActions(ActionSink):
     name = ["demo2a", "demo2b"]
 
     def start(self, action_name, **kwargs):
-        print 'Tracer: %s --> %s' % (DemoMultipleActions.name, action_name)
+        print "Tracer: %s --> %s" % (DemoMultipleActions.name, action_name)
         return True
 
 
@@ -54,5 +54,5 @@ def main():
         pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -7,7 +7,7 @@ Somewhere in your code, you have to import and initialize `rosplan`. Do the init
 import rosplan
 
 if __name__=="__main__":
-  rospy.init_node('name')
+  rospy.init_node("name")
   rosplan.init()
   rospy.spin()
 ```
@@ -40,7 +40,7 @@ def talk(msg, loc):
 `receive_action` can also take arguments if you don't want to use the same name (or it's taken). Also, argument order does not matter, just the names.
 
 ```
-@planner.planner_simple_action('talk')
+@planner.planner_simple_action("talk")
 def different_fn_name(loc, msg):
   say_stuff()
   set_effects()
@@ -107,12 +107,12 @@ import rosplan.controller.planning_system as ps
 rosplan.init()
   
 # Using the KB
-kb.add_instance('location', 'loc1')
+kb.add_instance("location", "loc1")
   
 # You can store stuff into the scene database with a third arg
-kb.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
-kb.add_goal('robotat', loc='loc1')
-kb.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
+kb.add_instance("message", "msg1", std_msgs.msg.String("Be sure to drink your ovaltine"))
+kb.add_goal("robot-at", loc="loc1")
+kb.add_goal("has-received-message", msg="msg1", loc="loc1")
   
 # Then, plan and execute! using PS
 ps.plan()
