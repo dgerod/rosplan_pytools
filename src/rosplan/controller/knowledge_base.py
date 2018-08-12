@@ -73,7 +73,10 @@ class Item(object):
         self._value = value
         self._instance = None
 
-    def get_type(self):
+    def get_ros_type(self):
+        """
+        Returns type of ros message.
+        """
         if self._value is not None:
             return self._value.__class__._type
         else:
@@ -91,6 +94,14 @@ class Item(object):
 
     def _get_meta_info(self):
         return self._instance[1]
+
+
+def _initialize_local_storage():
+    global _local_storage_item_types
+    _local_storage_item_types = {}
+
+    global _local_storage_item_domains
+    _local_storage_item_domains = {}
 
 
 def _initialize_kb_services(prefix):
@@ -140,10 +151,14 @@ def _initialize_sdb_connection():
     _sdb = MessageStoreProxy()
 
 
-def _register_item_type(category, type_):
+def _register_item_type(category, ros_type):
     global _local_storage_item_types
+
     if category not in _local_storage_item_types:
-        _local_storage_item_types[category] = type_
+        if isinstance(ros_type, str):
+            _local_storage_item_types[category] = ros_type
+        else:
+            _local_storage_item_types[category] = ros_type.__class__._type
 
 
 def _get_item_type(category):
@@ -200,7 +215,7 @@ def _instance_exists(item_name):
     return item_name in instance_names
 
 
-def _query_item_by_name_and_category(item_name, item_category, item_type):
+def _query_instance_by_name_and_category(item_name, item_category, item_type):
     """
     :param item_name: name of the item (str)
     :param item_category: name of the item category (str)
@@ -211,7 +226,7 @@ def _query_item_by_name_and_category(item_name, item_category, item_type):
     # Search item type in local storage
     if item_type is None:
         item_type = _get_item_type(item_category)
-        if item_type is not None:
+        if item_type is None:
             return Item()
 
     item = Item()
@@ -226,7 +241,7 @@ def _query_item_by_name_and_category(item_name, item_category, item_type):
     return item
 
 
-def _query_item_by_name(item_name):
+def _query_instance_by_name(item_name):
     """
     :param item_name: name of the item (str)
     :return: Item
@@ -264,7 +279,7 @@ def _query_item_by_name(item_name):
     return item
 
 
-def _find_instance(item, item_type):
+def _find_instance(item, item_type=None):
     """
     :param item: Item, that's name, category, etc.
     :param item_type: class that defines an item value (ros message)
@@ -280,12 +295,12 @@ def _find_instance(item, item_type):
     if item_category != "":
 
         if item_type is None:
-            item_type = item.get_type()
+            item_type = item.get_ros_type()
 
-        registered_item = _query_item_by_name_and_category(item_name, item_category, item_type)
+        registered_item = _query_instance_by_name_and_category(item_name, item_category, item_type)
 
     else:
-        registered_item = _query_item_by_name(item_name)
+        registered_item = _query_instance_by_name(item_name)
 
     return registered_item.is_valid(), registered_item
 
@@ -295,8 +310,13 @@ def init(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
 
+    _initialize_local_storage()
     _initialize_kb_services(prefix)
     _initialize_sdb_connection()
+
+
+def register_type(category, type_):
+    _register_item_type(category, type_)
 
 
 def exist_instance(item):
@@ -314,20 +334,14 @@ def exist_instance(item):
     else:
         new_item = item
 
-    return _instance_exists(new_item)
+    return _instance_exists(new_item.name())
 
-This work is ongoing, it must be tested before if completed. And after testing check how
-to unify add_instance(Item) with other functions as add_predicate(...)
-
-Need to test:
-    add_instance(), get_instance() and other functions
-    it seems that it is failing because item type is not correctly got from local storage.
 
 def add_instance(item, category="", value=None):
     """
     :param item: name of the item (str) or an item instance (Item)
-    :param value: a class with the value of the item (ros message)
     :param category: name of the item type (str)
+    :param value: a class with the value of the item (ros message)
     :return: QueryResult(success, Item)
 
     Usage:
@@ -355,10 +369,13 @@ def add_instance(item, category="", value=None):
     if success and new_item.value() is not None:
 
         _sdb.insert_named("%s__%s" % (new_item.category(), new_item.name()), new_item.value())
-        _register_item_type(new_item.category(), new_item.get_type())
+        _register_item_type(new_item.category(), new_item.get_ros_type())
 
         success, updated_item = _find_instance(new_item, None)
         new_item = updated_item
+
+    elif not success:
+        new_item = Item()
 
     return QueryResult(success, new_item)
 
