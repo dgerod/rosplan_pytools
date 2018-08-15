@@ -41,8 +41,7 @@ class Item(object):
         self._name = name
         self._category = category
         self._value = value
-
-        self._instance = None
+        self._query_response = None
 
     def __str__(self):
 
@@ -50,12 +49,12 @@ class Item(object):
         if self._value is not None:
             value = self._value
 
-        instance = "None"
-        if self._instance is not None:
-            instance = self._instance
+        query_response = "None"
+        if self._query_response is not None:
+            meta_data = self._query_response
 
-        return "%s, %s, %s; %s" % \
-               (self._name, self._category, value, instance)
+        return "[%s,\n%s,\n%s,\n%s]" % \
+               (self._name, self._category, value, query_response)
 
     def is_valid(self):
         return self._name != ""
@@ -70,30 +69,32 @@ class Item(object):
         return self._value
 
     def set_value(self, value):
+        self._clean()
         self._value = value
-        self._instance = None
 
     def get_ros_type(self):
-        """
-        Returns type of ros message.
-        """
         if self._value is not None:
             return self._value.__class__._type
         else:
             return None
 
-    def _update(self, instance):
-        self._value = instance[0]
-        self._instance = instance
+    def _clean(self):
+        self._value = None
+        self._query_response = None
+
+    def _update(self, query_response):
+        self._clean()
+        self._value = query_response[0]
+        self._query_response = query_response
 
     def _get_id(self):
-        return self._instance[1]["_id"]
+        return self._query_response[1]["_id"]
 
     def _get_ros_message(self):
-        return self._instance[0]
+        return self._query_response[0]
 
     def _get_meta_info(self):
-        return self._instance[1]
+        return self._query_response[1]
 
 
 def _initialize_local_storage():
@@ -233,10 +234,10 @@ def _query_instance_by_name_and_category(item_name, item_category, item_type):
 
     # Example in MongoDB:
     #  db.getCollection('message_store').find({'_meta.name': 'waypoint__p1'})
-    instance = _sdb.query_named("%s__%s" % (item_category, item_name), item_type)
-    if instance[0] is not None:
+    response = _sdb.query_named("%s__%s" % (item_category, item_name), item_type)
+    if response[0] is not None:
         item = Item(item_name, item_category)
-        item._update(instance)
+        item._update(response)
 
     return item
 
@@ -270,10 +271,10 @@ def _query_instance_by_name(item_name):
     item = Item()
     for item_category in results.types:
 
-        instance = _sdb.query_named("%s__%s" % (item_category, item_name), item_types[item_category])
-        if instance[0] is not None:
+        response = _sdb.query_named("%s__%s" % (item_category, item_name), item_types[item_category])
+        if response[0] is not None:
             item = Item(item_name, item_category)
-            item._update(instance)
+            item._update(response)
             break
 
     return item
@@ -355,8 +356,7 @@ def add_instance(item, category="", value=None):
         return QueryResult(False, Item())
 
     if isinstance(item, str):
-            new_item = Item(item, category)
-            new_item.set_value(value)
+            new_item = Item(item, category, value)
     else:
             new_item = item
 
@@ -396,8 +396,7 @@ def update_instance(item, value=None):
         return QueryResult(False, Item())
 
     if isinstance(item, str):
-        new_item = Item(item, "")
-        new_item.set_value(value)
+        new_item = Item(item, "", value)
     else:
         new_item = item
 
@@ -426,8 +425,7 @@ def get_instance(item, category="", item_type=None):
         success, Item = get_instance(str, str) --> Item instance
     """
 
-    if (isinstance(item, str) and category == "") or \
-            (not isinstance(item, str) and (category != "" or item_type is not None)):
+    if not isinstance(item, str) and (category != "" or item_type is not None):
         return QueryResult(False, Item())
 
     if isinstance(item, str):

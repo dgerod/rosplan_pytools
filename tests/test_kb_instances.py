@@ -17,6 +17,7 @@ class LocalKB(object):
 
         self._kb_services = dict()
         self._kb_services["get_current_instances"] = LocalKB._get_current_instances
+        self._kb_services["get_domain_types"] = LocalKB._get_domain_types
         self._kb_services["update_knowledge_base"] = LocalKB._update_knowledge_base
 
         class SDB(object):
@@ -78,6 +79,10 @@ class LocalKB(object):
                 instances.append(item["name"])
 
         return ServiceResponse(instances)
+
+    @staticmethod
+    def _get_domain_types():
+        return None
 
     @staticmethod
     def _update_knowledge_base(operation, item):
@@ -345,11 +350,11 @@ class TestGetInstance(unittest.TestCase):
         # Using legacy interface: name, category, value
         # -------------------------------------------------------------
 
-        result = kb.get_instance(item, "")
-        self.assertFalse(result.success, 'When using name value could not be empty')
+        #result = kb.get_instance('v200', "")
+        #self.assertFalse(result.success, 'When using name value could not be empty')
 
-        result = kb.get_instance(item, "", "value")
-        self.assertFalse(result.success, 'When using name value could not be empty')
+        #result = kb.get_instance('v200', "", "value")
+        #self.assertFalse(result.success, 'When using name value could not be empty')
 
     def test_2_fails_as_type_is_unknown(self):
         kb._services, kb._sdb = self._local_kb.get_kb()
