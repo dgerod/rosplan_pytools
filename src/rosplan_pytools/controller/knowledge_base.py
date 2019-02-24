@@ -16,7 +16,7 @@ from rosplan_knowledge_msgs.srv import \
     GetDomainTypeService, GetDomainOperatorService, \
     GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
 from rosplan_knowledge_msgs.msg import KnowledgeItem
-from rosplan.common.utils import keyval_to_dict, dict_to_keyval
+from rosplan_pytools.common.utils import keyval_to_dict, dict_to_keyval
 
 KB_UPDATE_ADD_KNOWLEDGE = 0
 KB_UPDATE_RM_KNOWLEDGE = 2

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan.controller import action_dispatcher as dispatcher
+from rosplan_pytools.controller import action_dispatcher as dispatcher
 
 
 def main():

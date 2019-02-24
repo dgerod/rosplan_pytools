@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan.controller import knowledge_base as kb
+from rosplan_pytools.controller import knowledge_base as kb
 
 
 def main():

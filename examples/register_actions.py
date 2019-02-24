@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan.interfaces.action_interface import *
+from rosplan_pytools.interfaces.action_interface import *
 
 
 class DemoSimpleAction(SimpleAction):

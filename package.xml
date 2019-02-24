@@ -5,14 +5,15 @@
   <description>An easier way to hook in ROSPlan using Python</description>
 
   <maintainer email="dgerod@xyz-lab.org.es">Diego Escudero</maintainer>
-  <author email="yochan@todo.todo">yochan</author>
 
-  <!-- One license tag required, multiple allowed, one license per tag -->
-  <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>mongodb_store</build_depend>
+  <build_depend>rosplan_dispatch_msgs</build_depend>
+  <build_depend>rosplan_knowlege_msgs</build_depend>
 
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>

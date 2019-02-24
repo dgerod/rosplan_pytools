@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import unittest
 
-from rosplan.controller import knowledge_base as kb
+from rosplan_pytools.controller import knowledge_base as kb
 from geometry_msgs.msg import Pose
 
 

@@ -1,5 +1,5 @@
-from knowledge_base import init as init_kb
-from planning_system import init as init_ps
+from .knowledge_base import init as init_kb
+from .planning_system import init as init_ps
 
 
 def init_controller():

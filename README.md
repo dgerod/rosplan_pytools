@@ -4,11 +4,11 @@ An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). T
 ## How to use
 Somewhere in your code, you have to import and initialize `rosplan`. Do the initializing *after* you have initialized rospy.
 ```
-import rosplan
+import rosplan_pytools
 
 if __name__=="__main__":
   rospy.init_node("name")
-  rosplan.init()
+  rosplan_pytools.init()
   rospy.spin()
 ```
 
@@ -100,11 +100,11 @@ class Listener(planner.ActionSink):
 Sometimes you want to tell ROSPlan what to do. To do that, you first need to add goals, then run the planner.
 
 ```
-import rosplan
-import rosplan.controller.knowledge_base as kb
-import rosplan.controller.planning_system as ps
+import rosplan_pytools
+import rosplan_pytools.controller.knowledge_base as kb
+import rosplan_pytools.controller.planning_system as ps
   
-rosplan.init()
+rosplan_pytools.init()
   
 # Using the KB
 kb.add_instance("location", "loc1")

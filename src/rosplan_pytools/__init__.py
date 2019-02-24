@@ -1,6 +1,5 @@
-import rospy
-from controller import init_controller
-from interfaces import init_interfaces
+from .controller import init_controller
+from .interfaces import init_interfaces
 
 
 def init(is_blocked=False):
