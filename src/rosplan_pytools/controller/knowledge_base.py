@@ -18,6 +18,7 @@ from rosplan_knowledge_msgs.srv import \
 from rosplan_knowledge_msgs.msg import KnowledgeItem
 from rosplan_pytools.common.utils import keyval_to_dict, dict_to_keyval
 
+
 KB_UPDATE_ADD_KNOWLEDGE = 0
 KB_UPDATE_RM_KNOWLEDGE = 2
 KB_UPDATE_ADD_GOAL = 1

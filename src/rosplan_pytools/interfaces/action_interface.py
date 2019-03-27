@@ -10,36 +10,24 @@ from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomai
 from rosplan_pytools.controller import knowledge_base as kb
 from rosplan_pytools.common.utils import keyval_to_dict, dict_to_keyval
 
+
+DEFAULT_DISPATCH_TOPIC_NAME = "kcl_rosplan/action_dispatch"
+DEFAULT_FEEDBACK_TOPIC_NAME = "kcl_rosplan/action_feedback"
+
 feedback = None
 action_ids = {}
 registered_actions = []
 func_action = {}
 
 
-def _initialize_receiver():
-    actions = {}
-
-    # Only one PDDL action is using this class. In case action
-    # name is not specified, name of the class is used
-    for act in SimpleAction.__subclasses__() + Action.__subclasses__():
-            actions[act.name or act.__name__] = act
-
-    # This class is able to receive multiple PDDL actions. Action
-    # names are specified as a list.
-    for act in ActionSink.__subclasses__():
-            for name in act.name:
-                actions[name] = act
-
-    # for act in registered_actions:
-    #    actions[act[0]] = act[1]
-
-    return actions
+def _list_actions():
+    return []
 
 
 def _action_receiver(msg):
 
     global action_ids
-    actions = _initialize_receiver()
+    actions = _list_actions()
 
     if msg.name in actions:
         try:
@@ -70,12 +58,54 @@ def _action_receiver(msg):
             action_ids[msg.action_id].resume()
 
 
+def _list_existing_actions():
+
+    actions = {}
+
+    # Only one PDDL action is using this class. In case action
+    # name is not specified, name of the class is used
+    for act in SimpleAction.__subclasses__() + Action.__subclasses__():
+        actions[act.name or act.__name__] = act
+
+    # This class is able to receive multiple PDDL actions. Action
+    # names are specified as a list.
+    for act in ActionSink.__subclasses__():
+        for name in act.name:
+            actions[name] = act
+
+    return actions
+
+
+def _list_registered_actions():
+
+    actions = {}
+    for act in registered_actions:
+        actions[act[0]] = act[1]
+
+    return actions
+
+
+def init(auto_register_actions=True):
+
+    if auto_register_actions:
+        _list_actions = _list_existing_actions
+    else:
+        _list_actions = _list_registered_actions
+
+    rospy.loginfo("Available num actions: %d" % len(_list_actions()))
+
+
+def register_action(name, action):
+    global registered_actions
+    registered_actions.append((name, action))
+
+
 def start_actions(dispatch_topic_name=None,
                   feedback_topic_name=None,
                   is_blocked=False):
     global feedback
-    dispatch_topic_name = dispatch_topic_name or "kcl_rosplan/action_dispatch"
-    feedback_topic_name = feedback_topic_name or "kcl_rosplan/action_feedback"
+    dispatch_topic_name = dispatch_topic_name or DEFAULT_DISPATCH_TOPIC_NAME
+    feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
     feedback = rospy.Publisher(feedback_topic_name,
                                ActionFeedback,
                                queue_size=10)
@@ -86,11 +116,6 @@ def start_actions(dispatch_topic_name=None,
     rospy.loginfo("Started listening for planner actions")
     if is_blocked:
         rospy.spin()
-
-
-def register_action(name, action):
-    global registered_actions
-    registered_actions.append((name,action))
 
 
 class SimpleAction(object):
@@ -280,7 +305,6 @@ class CheckActionAndProcessEffects(object):
             if predicate_name not in self.predicates:
                 res = self.services["get_domain_predicate_details"](predicate_name)
                 self.predicates[predicate_name] = res.predicate
-                #print(res.predicate)
 
     def prepare(self):
         rospy.loginfo("[RPpt][CAPE] prepare")

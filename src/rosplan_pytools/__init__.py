@@ -2,7 +2,7 @@ from .controller import init_controller
 from .interfaces import init_interfaces
 
 
-def init(is_blocked=False):
+def init(is_blocked=False, auto_register_actions=True):
     """
     Initialize all the things!!
 
@@ -16,5 +16,5 @@ def init(is_blocked=False):
       `rospy.init_node(...)`.
     """
     init_controller()
-    init_interfaces(is_blocked)
+    init_interfaces(is_blocked, auto_register_actions)
 

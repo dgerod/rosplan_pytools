@@ -1,8 +1,9 @@
 import rospy
+from .action_interface import init as init_actions
 from .action_interface import start_actions
 
 
-def init_interfaces(block=False):
+def init_interfaces(block=False, auto_register_actions=True):
     """
     Initialize all the things!!
 
@@ -15,6 +16,8 @@ def init_interfaces(block=False):
       anything useful can be done, call this after
       `rospy.init_node(...)`.
     """
+
+    init_actions(auto_register_actions)
     start_actions()
 
     if block:
