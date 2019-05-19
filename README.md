@@ -1,5 +1,5 @@
 # rosplan_pytools
-An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). This repository is a spin-off of [rosplan_interface](https://github.com/yochan-lab/rosplan_interface).
+An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). This repository is a derivative work of [rosplan_interface](https://github.com/yochan-lab/rosplan_interface).
 
 ## How to use
 Somewhere in your code, you have to import and initialize `rosplan`. Do the initializing *after* you have initialized rospy.
