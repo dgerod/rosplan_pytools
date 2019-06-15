@@ -1,5 +1,5 @@
 import rospy
-from .action_interface import init as init_actions
+from .action_interface import initialize_actions
 from .action_interface import start_actions
 
 
@@ -17,7 +17,7 @@ def init_interfaces(block=False, auto_register_actions=True):
       `rospy.init_node(...)`.
     """
 
-    init_actions(auto_register_actions)
+    initialize_actions(auto_register_actions)
     start_actions()
 
     if block:

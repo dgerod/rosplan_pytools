@@ -24,40 +24,6 @@ def _list_actions():
     return []
 
 
-def _action_receiver(msg):
-
-    global action_ids
-    actions = _list_actions()
-
-    if msg.name in actions:
-        try:
-            action = actions[msg.name](msg.action_id,
-                                       msg.dispatch_time,
-                                       feedback,
-                                       keyval_to_dict(msg.parameters))
-            action_ids[msg.action_id] = action
-
-            if issubclass(action.__class__, ActionSink):
-                action.execute(msg.name, **keyval_to_dict(msg.parameters))
-            else:
-                action.execute(**keyval_to_dict(msg.parameters))
-
-        except Exception as e:
-            rospy.logwarn("action '%s' failed." % msg.name, exc_info=1)
-            feedback.publish(ActionFeedback(msg.action_id,
-                                            "action failed",
-                                            dict_to_keyval(None)))
-    elif msg.name == "cancel_action":
-        if msg.action_id in action_ids:
-            action_ids[msg.action_id].cancel()
-    elif msg.name == "pause_action":
-        if msg.action_id in action_ids:
-            action_ids[msg.action_id].pause()
-    elif msg.name == "resume_action":
-        if msg.action_id in action_ids:
-            action_ids[msg.action_id].resume()
-
-
 def _list_existing_actions():
 
     actions = {}
@@ -85,35 +51,83 @@ def _list_registered_actions():
     return actions
 
 
-def init(auto_register_actions=True):
+def _action_receiver(msg):
 
+    global action_ids
+    actions = _list_actions()
+
+    rospy.loginfo("[RPpt][AIF] a message is received: '%d', '%s'" % (msg.action_id, msg.name))
+    rospy.loginfo(actions)
+
+    if msg.name in actions:
+
+        action_name = msg.name
+        rospy.loginfo("[RPpt][AIF] start '%s' action" % action_name)
+
+        try:
+            action = actions[action_name](msg.action_id, msg.dispatch_time,
+                                          feedback,
+                                          keyval_to_dict(msg.parameters))
+            action_ids[msg.action_id] = action
+
+            if issubclass(action.__class__, ActionSink):
+                action.execute(action_name, **keyval_to_dict(msg.parameters))
+            else:
+                action.execute(**keyval_to_dict(msg.parameters))
+
+        except Exception as e:
+            rospy.logwarn("[RPpt][AIF] action '%s' failed." % msg.name, exc_info=1)
+            feedback.publish(ActionFeedback(msg.action_id,
+                                            "action failed",
+                                            dict_to_keyval(None)))
+    elif msg.action_id in action_ids:
+
+        operation = msg.name
+        rospy.loginfo("[RPpt][AIF] update action '%d', doing '%s'" % (msg.action_id, operation))
+
+        if operation == "cancel_action":
+            action_ids[msg.action_id].cancel()
+        elif operation == "pause_action":
+            action_ids[msg.action_id].pause()
+        elif operation == "resume_action":
+            action_ids[msg.action_id].resume()
+
+    else:
+        rospy.loginfo("[RPpt][AR] no operation")
+
+
+def register_action(name, action):
+    global registered_actions
+
+    if isinstance(name, str):
+        registered_actions.append((name, action))
+    else:
+        for n in name:
+            registered_actions.append((n, action))
+
+
+def initialize_actions(auto_register_actions=True):
+
+    global _list_actions
     if auto_register_actions:
         _list_actions = _list_existing_actions
     else:
         _list_actions = _list_registered_actions
 
-    rospy.loginfo("Available num actions: %d" % len(_list_actions()))
-
-
-def register_action(name, action):
-    global registered_actions
-    registered_actions.append((name, action))
+    rospy.loginfo("[RPpt][AIF] available num actions: %d" % len(_list_actions()))
 
 
 def start_actions(dispatch_topic_name=None,
                   feedback_topic_name=None,
                   is_blocked=False):
-    global feedback
-    dispatch_topic_name = dispatch_topic_name or DEFAULT_DISPATCH_TOPIC_NAME
-    feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
-    feedback = rospy.Publisher(feedback_topic_name,
-                               ActionFeedback,
-                               queue_size=10)
 
-    rospy.Subscriber(dispatch_topic_name,
-                     ActionDispatch,
-                     _action_receiver)
-    rospy.loginfo("Started listening for planner actions")
+    global feedback
+    feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
+    feedback = rospy.Publisher(feedback_topic_name, ActionFeedback, queue_size=10)
+    dispatch_topic_name = dispatch_topic_name or DEFAULT_DISPATCH_TOPIC_NAME
+    rospy.Subscriber(dispatch_topic_name, ActionDispatch, _action_receiver)
+
+    rospy.loginfo("[RPpt][AIF] Started listening for planner actions")
     if is_blocked:
         rospy.spin()
 
@@ -232,8 +246,8 @@ class ActionSink(object):
 
 class CheckActionAndProcessEffects(object):
     """
-    It checks if the parameters of the action are correct according to PDDL definition,
-    and it applies the effects defined in the PDDL file. 
+    It validate parameters of an action and applies the effects defined in
+    the PDDL file.
     
     NOTE: Based on RPActionInterface class of 'ROSPlan/rosplan_planning_system.
     """
@@ -256,6 +270,8 @@ class CheckActionAndProcessEffects(object):
         self.pddl_action = action_name
         self.predicates = {}
         self.bound_params = {}
+
+        self._prepare_predicates()
 
     def _fetch_predicates_from_domain(self, action_name):
 
@@ -306,13 +322,11 @@ class CheckActionAndProcessEffects(object):
                 res = self.services["get_domain_predicate_details"](predicate_name)
                 self.predicates[predicate_name] = res.predicate
 
-    def prepare(self):
-        rospy.loginfo("[RPpt][CAPE] prepare")
-
+    def _prepare_predicates(self):
         predicate_collection = self._fetch_predicates_from_domain(self.pddl_action)
         self._fetch_details_of_predicates(predicate_collection)
 
-    def check_parameters(self, arguments):
+    def validate_parameters(self, arguments):
 
         rospy.loginfo("[RPpt][CAPE] check parameters")
 
@@ -424,13 +438,15 @@ class Action(object):
         raise NotImplementedError
 
     def execute(self, **kwargs):
-        checker = CheckActionAndProcessEffects(self.__class__.name)
-        checker.prepare()
 
-        if not checker.check_parameters(kwargs):
+        checker = CheckActionAndProcessEffects(self.__class__.name)
+
+        if not checker.validate_parameters(kwargs):
             raise ValueError("Action arguments are incorrect")
+
         if not self._start(**kwargs):
             return False
+
         checker.apply_effects()
         return True
 
