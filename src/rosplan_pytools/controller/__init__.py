@@ -1,4 +1,5 @@
 from .knowledge_base import init as init_kb
+from .scene_database import init as init_sdb
 from .planning_system import init as init_ps
 
 
@@ -16,6 +17,7 @@ def init_controller():
       `rospy.init_node(...)`.
     """
     init_kb()
+    init_sdb()
     init_ps()
 
 
