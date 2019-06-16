@@ -33,7 +33,7 @@ def retrieve_instances():
 def main():
     rospy.init_node("pytools_ask_for_instance")
 
-    kb.init()
+    kb.initialize()
     kb.clear_predicates()
     kb.clear_goals()
 

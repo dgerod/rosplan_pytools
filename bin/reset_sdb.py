@@ -6,7 +6,7 @@ from rosplan_pytools.controller import scene_database as sdb
 
 def main():
 
-    sdb.init()
+    sdb.initialize()
     sdb.reset()
 
 

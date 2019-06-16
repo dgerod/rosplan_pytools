@@ -7,7 +7,7 @@ from rosplan_pytools.controller import action_dispatcher as dispatcher
 
 def main():
     rospy.init_node("pytools_dipatch_action")
-    dispatcher.init()
+    dispatcher.initialize()
 
     name = "find_object"
     parameters = {"c": "c1", "o": "o1"}

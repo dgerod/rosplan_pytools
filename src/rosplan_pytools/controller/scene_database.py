@@ -1,13 +1,14 @@
 """
  ROSPlan Scene Database interface
- Avoids the totally convoluted syntax of ROSPlan, and lets you easily put data in
- the scene database at the same time.
+ Lets you easily put data in the scene database that it is implemented
+ using Ros Server
 """
 
 from __future__ import absolute_import
 import uuid
 import rospy
 from rosplan_pytools.common import message_converter
+
 
 _ros_server = None
 
@@ -23,10 +24,10 @@ class _RosServerConnection(object):
 
     def reset(self):
 
-        num_elements = self._get_num_elements()
-        for e in range(0, num_elements):
+        for edx in range(0, self._get_num_elements()):
             try:
-                key = self._create_key("elements/" + str(e))
+                id_ = edx + 1
+                key = self._create_key("elements/" + str(id_))
                 rospy.delete_param(key)
             except KeyError:
                 pass
@@ -39,7 +40,7 @@ class _RosServerConnection(object):
 
     def add_element(self, name, message):
 
-        e, key = self._find_element_by_name(name)
+        key, id_ = self._find_element_by_name(name)
         if key != "":
             return False
 
@@ -59,23 +60,19 @@ class _RosServerConnection(object):
         # print msg_value
         # msg_value = replace_types_in_dictionary(msg_value)
 
-        num_elements = self._get_num_elements()
-        element = {'name': name, 'id': str(uuid.uuid4()), 'msg_type': message.__class__._type,
+        element = {'name': name, 'uuid': str(uuid.uuid4()), 'msg_type': message.__class__._type,
                    'msg_value': msg_value}
 
-        rospy.set_param(self._create_key("elements/" + str(num_elements)), element)
+        id_ = self._get_num_elements() + 1
+        rospy.set_param(self._create_key("elements/" + str(id_)), element)
 
-        num_elements += 1
-        self._set_num_elements(num_elements)
+        self._set_num_elements(self._get_num_elements() + 1)
 
         return True
 
     def update_element(self, name, message):
 
-        import pdb
-        pdb.set_trace()
-
-        e, key = self._find_element_by_name(name)
+        key, id_ = self._find_element_by_name(name)
         if key == "":
             return False
 
@@ -83,7 +80,7 @@ class _RosServerConnection(object):
         if not element or element['msg_type'] != message._type:
             return False
 
-        updated_element = {'name': name, 'id': element['id'], 'msg_type': element['msg_type'],
+        updated_element = {'name': name, 'uuid': element['uuid'], 'msg_type': element['msg_type'],
                            'msg_value': message_converter.convert_ros_message_to_dictionary(message)}
         rospy.set_param(key, updated_element)
 
@@ -91,19 +88,20 @@ class _RosServerConnection(object):
 
     def remove_element(self, name):
 
-        edx, key = self._find_element_by_name(name)
+        key, id_ = self._find_element_by_name(name)
 
         if key == "":
             return False
 
         num_elements = self._get_num_elements()
-        is_last_element = (edx == num_elements-1)
+        is_last_element = (id_ == self._get_num_elements())
 
         if is_last_element:
             rospy.delete_param(key)
 
         else:
-            last_element_key = self._create_key("elements/" + str(num_elements-1))
+            element_id = num_elements
+            last_element_key = self._create_key("elements/" + str(element_id))
             element = rospy.get_param(last_element_key)
             rospy.delete_param(last_element_key)
             rospy.set_param(key, element)
@@ -115,12 +113,12 @@ class _RosServerConnection(object):
 
     def element_exists(self, name):
 
-        e, key = self._find_element_by_name(name)
+        key, id_ = self._find_element_by_name(name)
         return key != ""
 
     def get_element(self, name):
 
-        edx, key = self._find_element_by_name(name)
+        key, id_ = self._find_element_by_name(name)
         if key == "":
             return False, ()
 
@@ -130,25 +128,27 @@ class _RosServerConnection(object):
                    (message_converter.convert_dictionary_to_ros_message(element['msg_type'],
                                                                         element['msg_value'],
                                                                         'message'),
-                    element['id'])
+                    element['uuid'])
         else:
             return False, ()
 
     def get_all_elements(self):
 
-        num_elements = self._get_num_elements()
         elements = list()
+        for edx in range(0, self._get_num_elements()):
 
-        for edx in range(0, num_elements):
-            key = self._create_key("elements/" + str(edx))
+            id_ = edx + 1
+            key = self._create_key("elements/" + str(id_))
+
             if rospy.has_param(key):
+
                 name = rospy.get_param(key + "/name")
                 msg_type = rospy.get_param(key + "/msg_type")
                 msg_value = rospy.get_param(key + "/msg_value")
-                id_ = rospy.get_param(key + "/id")
+                uuid_ = rospy.get_param(key + "/uuid")
 
                 message = message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
-                elements.append((name, message, id_))
+                elements.append((name, message, uuid_))
 
             else:
                 raise RuntimeError("Data stored is inconsistent.")
@@ -169,21 +169,21 @@ class _RosServerConnection(object):
     def _find_element_by_name(self, name):
 
         found = False
-        edx = -1
-        key = ""
+        element_key = ""
+        element_id = -1
 
-        num_elements = self._get_num_elements()
-        for edx in range(0, num_elements):
-            key = self._create_key("elements/" + str(edx))
-            if rospy.get_param(key + "/name", "") == name:
+        for edx in range(0, self._get_num_elements()):
+            element_id = edx + 1
+            element_key = self._create_key("elements/" + str(element_id))
+            if rospy.get_param(element_key + "/name", "") == name:
                 found = True
                 break
 
         if not found:
-            edx = -1
-            key = ""
+            element_key = ""
+            element_id = -1
 
-        return edx, key
+        return element_key, element_id
 
 
 class Element(object):
@@ -197,6 +197,9 @@ class Element(object):
         if value is not None:
             self._value = value
             self._ros_type = self.extract_ros_type(value)
+        else:
+            self._value = None
+            self._ros_type = ""
 
     def __str__(self):
 
@@ -237,7 +240,7 @@ def _find_element_by_name(name):
         return Element(element[0])
 
 
-def init(sdb_name=None):
+def initialize(sdb_name=None):
 
     global _ros_server
 
@@ -245,6 +248,11 @@ def init(sdb_name=None):
         sdb_name = "scene_database"
 
     _ros_server = _RosServerConnection(sdb_name)
+
+
+def num_elements():
+
+    return _ros_server.num_elements()
 
 
 def exist_element(name):
@@ -346,7 +354,7 @@ def remove_element(name):
         return False
 
 
-def clear_elements():
+def remove_all_elements():
 
     elements = _ros_server.get_all_elements()
     for name, message, id_ in elements:

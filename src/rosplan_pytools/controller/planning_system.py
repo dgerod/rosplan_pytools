@@ -15,7 +15,7 @@ status = None
 #   COMMANDS = ["plan", "pause", "resume", "cancel"]
 
 
-def init():
+def initialize():
     global cmd_pub
     cmd_pub = rospy.Publisher("/kcl_rosplan/planning_commands", String)
     rospy.Subscriber("kcl_rosplan/system_state", String, set_dispatch_status)
