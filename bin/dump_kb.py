@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 from rosplan_pytools.controller import knowledge_base as kb
 
 
@@ -8,18 +9,18 @@ def main():
 
     kb.initialize()
 
-    print "Predicates ---"
+    print("Predicates ---")
     for predicate in kb.list_predicates():
-        print "[" + str(predicate) + "]"
+        print("[" + str(predicate) + "]")
 
-    print "\nInstances ---"
-    print str(kb.list_instances()) + '\n'
+    print("\nInstances ---")
+    print(str(kb.list_instances()) + "\n")
     for instance in kb.list_instances():
-        print "[" + str(kb.get_instance(instance).item) + "]"
+        print("[" + str(kb.get_instance(instance).item) + "]")
 
-    print "\nGoals ---"
+    print("\nGoals ---")
     for goal in kb.list_goals():
-        print "[" + str(goal) + "]"
+        print("[" + str(goal) + "]")
 
 
 if __name__ == "__main__":
