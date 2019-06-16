@@ -38,7 +38,7 @@ class _RosServerConnection(object):
 
         return self._get_num_elements()
 
-    def add_element(self, name, message):
+    def add_element(self, name, message, category="UNKNOWN"):
 
         key, id_ = self._find_element_by_name(name)
         if key != "":
@@ -60,8 +60,8 @@ class _RosServerConnection(object):
         # print msg_value
         # msg_value = replace_types_in_dictionary(msg_value)
 
-        element = {'name': name, 'uuid': str(uuid.uuid4()), 'msg_type': message.__class__._type,
-                   'msg_value': msg_value}
+        element = {'name': name, 'category': category, 'uuid': str(uuid.uuid4()),
+                   'msg_type': message.__class__._type,'msg_value': msg_value}
 
         id_ = self._get_num_elements() + 1
         rospy.set_param(self._create_key("elements/" + str(id_)), element)
@@ -80,8 +80,9 @@ class _RosServerConnection(object):
         if not element or element['msg_type'] != message._type:
             return False
 
-        updated_element = {'name': name, 'uuid': element['uuid'], 'msg_type': element['msg_type'],
-                           'msg_value': message_converter.convert_ros_message_to_dictionary(message)}
+        msg_value = message_converter.convert_ros_message_to_dictionary(message)
+        updated_element = {'name': name, 'category': element['category'], 'uuid': element['uuid'],
+                           'msg_type': element['msg_type'], 'msg_value': msg_value}
         rospy.set_param(key, updated_element)
 
         return True
@@ -128,6 +129,7 @@ class _RosServerConnection(object):
                    (message_converter.convert_dictionary_to_ros_message(element['msg_type'],
                                                                         element['msg_value'],
                                                                         'message'),
+                    element['category'],
                     element['uuid'])
         else:
             return False, ()
@@ -143,12 +145,13 @@ class _RosServerConnection(object):
             if rospy.has_param(key):
 
                 name = rospy.get_param(key + "/name")
+                category = rospy.get_param(key + "/category")
                 msg_type = rospy.get_param(key + "/msg_type")
                 msg_value = rospy.get_param(key + "/msg_value")
                 uuid_ = rospy.get_param(key + "/uuid")
 
                 message = message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
-                elements.append((name, message, uuid_))
+                elements.append((name, message, category, uuid_))
 
             else:
                 raise RuntimeError("Data stored is inconsistent.")
@@ -192,40 +195,46 @@ class Element(object):
     def extract_ros_type(message):
         return message._type
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, category="UNKNOWN"):
+
+        self._category = category
 
         if value is not None:
-            self._value = value
-            self._ros_type = self.extract_ros_type(value)
+            self._ros_message_value = value
+            self._ros_message_type = self.extract_ros_type(value)
         else:
-            self._value = None
-            self._ros_type = ""
+            self._ros_message_value = None
+            self._ros_message_type = ""
 
     def __str__(self):
 
-        if self._value is not None:
-            value = self._value
+        if self._ros_message_value is not None:
+            value = self._ros_message_value
         else:
             value = "None"
 
-        return "%s, %s" % (self._ros_type, value)
+        return "%s, %s, %s" % (self._category, self._ros_message_type, value)
 
     def __eq__(self, other):
 
-        return self._value == other._value
+        return self._ros_message_type == other._ros_message_type
 
     def clean(self):
-        self._value = None
-        self._ros_type = ""
+        self._category = ""
+        self._ros_message_value = None
+        self._ros_message_type = ""
 
     def is_valid(self):
-        return self._value is not None
+        return self._ros_message_value is not None
+
+    def category(self):
+        return self._category
 
     def value(self):
-        return self._value
+        return self._ros_message_value
 
-    def ros_type(self):
-        return self._ros_type
+    def type(self):
+        return self._ros_message_type
 
 
 def _find_element_by_name(name):
@@ -271,7 +280,7 @@ def list_elements():
 
     names = list()
     elements = _ros_server.get_all_elements()
-    for name, message, id_ in elements:
+    for name, message, category, id_ in elements:
         names.append(name)
 
     return names
@@ -291,7 +300,7 @@ def add_element(name, element):
 
     if not exist_element(name) and element.is_valid():
 
-        _ros_server.add_element(name, element.value())
+        _ros_server.add_element(name, element.value(), element.category())
 
         updated_element = _find_element_by_name(name)
         success = updated_element.is_valid()

@@ -60,7 +60,7 @@ class TestRosServerConnection(unittest.TestCase):
 
         mock_has_param.side_effect = [False]
         mock_set_param.side_effect = [True, True, True]
-        mock_get_param.side_effect = [0, 0]
+        mock_get_param.side_effect = [0, 0, 1, 1]
 
         pose = Pose()
 
@@ -68,17 +68,19 @@ class TestRosServerConnection(unittest.TestCase):
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 3)
-        self.assertEqual(mock_get_param.call_count, 3)
+        self.assertEqual(mock_get_param.call_count, 4)
 
         element = {'msg_type': pose._type,
                    'msg_value': message_converter.convert_ros_message_to_dictionary(pose),
+                   'category': "a_category",
                    'uuid': 123456789}
         mock_get_param.side_effect = [1, "key_1", element]
 
-        success, info = ros_server.get_element("key_1")
+        success, element = ros_server.get_element("key_1")
 
         self.assertTrue(success)
-        self.assertEqual(info[0], Pose())
+        self.assertEqual(Pose(), element[0])
+        self.assertEqual("a_category", element[1])
 
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.has_param')
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.get_param')
@@ -97,13 +99,13 @@ class TestRosServerConnection(unittest.TestCase):
 
         mock_has_param.side_effect = [False]
         mock_set_param.side_effect = [True, True, True]
-        mock_get_param.side_effect = [1, "other_key", 1]
+        mock_get_param.side_effect = [1, "other_key", 1, 1, 1]
 
         self.assertTrue(ros_server.add_element("key_1", Pose()))
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 3)
-        self.assertEqual(mock_get_param.call_count, 4)
+        self.assertEqual(mock_get_param.call_count, 5)
 
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.has_param')
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.get_param')
