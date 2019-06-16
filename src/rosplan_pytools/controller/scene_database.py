@@ -246,7 +246,7 @@ def _find_element_by_name(name):
     if not success:
         return Element()
     else:
-        return Element(element[0])
+        return Element(element[0], element[1])
 
 
 def initialize(sdb_name=None):
