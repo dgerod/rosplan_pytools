@@ -92,7 +92,7 @@ class Listener(planner.ActionSink):
   name = ["talker_1", "talker_2"]
   
   def start(self, action_name, arguments):
-    say_stuff()    
+    say_stuff()
 ```
 
 ## Manipulating ROSPlan
@@ -102,15 +102,18 @@ Sometimes you want to tell ROSPlan what to do. To do that, you first need to add
 ```
 import rosplan_pytools
 import rosplan_pytools.controller.knowledge_base as kb
+import rosplan_pytools.controller.scene_database as sdb
 import rosplan_pytools.controller.planning_system as ps
   
 rosplan_pytools.init()
   
 # Using the KB
-kb.add_instance("location", "loc1")
+kb.add_instance("loc1", "location")
   
 # You can store stuff into the scene database with a third arg
-kb.add_instance("message", "msg1", std_msgs.msg.String("Be sure to drink your ovaltine"))
+kb.add_instance("msg1", "msg_type")
+sdb.add_element("msg1", sdb.Element(std_msgs.msg.String("Be sure to drink your ovaltine"), "msg_type"))
+
 kb.add_goal("robot-at", loc="loc1")
 kb.add_goal("has-received-message", msg="msg1", loc="loc1")
   
