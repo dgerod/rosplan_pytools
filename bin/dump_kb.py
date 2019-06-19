@@ -16,7 +16,7 @@ def main():
     print("\nInstances ---")
     print(str(kb.list_instances()) + "\n")
     for instance in kb.list_instances():
-        print("[" + str(instance) + "]")
+        print("[" + str(instance) + ", " + str(kb.get_instance_type(instance)) + "]")
 
     print("\nGoals ---")
     for goal in kb.list_goals():

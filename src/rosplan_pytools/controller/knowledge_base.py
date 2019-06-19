@@ -149,6 +149,20 @@ def remove_instance(item_name, type_name):
                                                             "", [], 0.0, False)).success
 
 
+def get_instance_type(item_name):
+
+    if not isinstance(item_name, str):
+        raise TypeError
+
+    types = _services["get_domain_types"]().types
+    for type_name in types:
+        instance_names = _services["get_current_instances"](type_name).instances
+        if item_name in instance_names:
+            return type_name
+
+    return ""
+
+
 def list_instances(type_name=""):
     instance_names = _services["get_current_instances"](type_name).instances
     return instance_names
