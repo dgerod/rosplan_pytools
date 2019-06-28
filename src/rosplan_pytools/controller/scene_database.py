@@ -38,7 +38,7 @@ class _RosServerConnection(object):
 
         return self._get_num_elements()
 
-    def add_element(self, name, message, category="UNKNOWN"):
+    def add_element(self, name, message, metadata=""):
 
         key, id_ = self._find_element_by_name(name)
         if key != "":
@@ -60,7 +60,7 @@ class _RosServerConnection(object):
         # print msg_value
         # msg_value = replace_types_in_dictionary(msg_value)
 
-        element = {'name': name, 'category': category, 'uuid': str(uuid.uuid4()),
+        element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
                    'msg_type': message.__class__._type,'msg_value': msg_value}
 
         id_ = self._get_num_elements() + 1
@@ -81,7 +81,7 @@ class _RosServerConnection(object):
             return False
 
         msg_value = message_converter.convert_ros_message_to_dictionary(message)
-        updated_element = {'name': name, 'category': element['category'], 'uuid': element['uuid'],
+        updated_element = {'name': name, 'metadata': element['metadata'], 'uuid': element['uuid'],
                            'msg_type': element['msg_type'], 'msg_value': msg_value}
         rospy.set_param(key, updated_element)
 
@@ -129,7 +129,7 @@ class _RosServerConnection(object):
                    (message_converter.convert_dictionary_to_ros_message(element['msg_type'],
                                                                         element['msg_value'],
                                                                         'message'),
-                    element['category'],
+                    element['metadata'],
                     element['uuid'])
         else:
             return False, ()
@@ -145,13 +145,13 @@ class _RosServerConnection(object):
             if rospy.has_param(key):
 
                 name = rospy.get_param(key + "/name")
-                category = rospy.get_param(key + "/category")
+                metadata = rospy.get_param(key + "/metadata")
                 msg_type = rospy.get_param(key + "/msg_type")
                 msg_value = rospy.get_param(key + "/msg_value")
                 uuid_ = rospy.get_param(key + "/uuid")
 
                 message = message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
-                elements.append((name, message, category, uuid_))
+                elements.append((name, message, metadata, uuid_))
 
             else:
                 raise RuntimeError("Data stored is inconsistent.")
@@ -195,9 +195,9 @@ class Element(object):
     def extract_ros_type(message):
         return message._type
 
-    def __init__(self, value=None, category="UNKNOWN"):
+    def __init__(self, value=None, metadata=""):
 
-        self._category = category
+        self._metadata = metadata
 
         if value is not None:
             self._ros_message_value = value
@@ -211,24 +211,24 @@ class Element(object):
         if self._ros_message_value is not None:
             value = self._ros_message_value
         else:
-            value = "None"
+            value = ""
 
-        return "%s, %s, %s" % (self._category, self._ros_message_type, value)
+        return "%s, %s, %s" % (self._ros_message_type, value, self._metadata)
 
     def __eq__(self, other):
 
         return self._ros_message_type == other._ros_message_type
 
     def clean(self):
-        self._category = ""
+        self._metadata = ""
         self._ros_message_value = None
         self._ros_message_type = ""
 
     def is_valid(self):
         return self._ros_message_value is not None
 
-    def category(self):
-        return self._category
+    def metadata(self):
+        return self._metadata
 
     def value(self):
         return self._ros_message_value
@@ -280,7 +280,7 @@ def list_elements():
 
     names = list()
     elements = _ros_server.get_all_elements()
-    for name, message, category, id_ in elements:
+    for name, message, metadata, id_ in elements:
         names.append(name)
 
     return names
@@ -300,7 +300,7 @@ def add_element(name, element):
 
     if not exist_element(name) and element.is_valid():
 
-        _ros_server.add_element(name, element.value(), element.category())
+        _ros_server.add_element(name, element.value(), element.metadata())
 
         updated_element = _find_element_by_name(name)
         success = updated_element.is_valid()

@@ -72,7 +72,7 @@ class TestRosServerConnection(unittest.TestCase):
 
         element = {'msg_type': pose._type,
                    'msg_value': message_converter.convert_ros_message_to_dictionary(pose),
-                   'category': "a_category",
+                   'metadata': "some information",
                    'uuid': 123456789}
         mock_get_param.side_effect = [1, "key_1", element]
 
@@ -80,7 +80,7 @@ class TestRosServerConnection(unittest.TestCase):
 
         self.assertTrue(success)
         self.assertEqual(Pose(), element[0])
-        self.assertEqual("a_category", element[1])
+        self.assertEqual("some information", element[1])
 
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.has_param')
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.get_param')
