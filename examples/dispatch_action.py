@@ -2,17 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan.controller import action_dispatcher as dispatcher
+from rosplan_pytools.controller import action_dispatcher as dispatcher
 
 
 def main():
     rospy.init_node("pytools_dipatch_action")
-    dispatcher.init()
+    dispatcher.initialize()
 
-    name = 'find_object'
-    parameters = {'c': 'c1', 'o': 'o1'}
+    name = "find_object"
+    parameters = {"c": "c1", "o": "o1"}
     dispatcher.send_action(name, **parameters)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

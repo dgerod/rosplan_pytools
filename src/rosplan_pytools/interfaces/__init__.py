@@ -1,9 +1,9 @@
 import rospy
-from controller import init_controller
-from interfaces import init_interfaces
+from .action_interface import initialize_actions
+from .action_interface import start_actions
 
 
-def init(is_blocked=False):
+def init_interfaces(block=False, auto_register_actions=True):
     """
     Initialize all the things!!
 
@@ -16,6 +16,12 @@ def init(is_blocked=False):
       anything useful can be done, call this after
       `rospy.init_node(...)`.
     """
-    init_controller()
-    init_interfaces(is_blocked)
 
+    initialize_actions(auto_register_actions)
+    start_actions()
+
+    if block:
+        rospy.spin()
+
+
+init = init_interfaces

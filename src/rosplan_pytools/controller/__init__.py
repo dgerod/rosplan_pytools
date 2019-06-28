@@ -1,8 +1,9 @@
-import rospy
-from .action_interface import start_actions
+from .knowledge_base import initialize as init_kb
+from .scene_database import initialize as init_sdb
+from .planning_system import initialize as init_ps
 
 
-def init_interfaces(block=False):
+def init_controller():
     """
     Initialize all the things!!
 
@@ -15,10 +16,9 @@ def init_interfaces(block=False):
       anything useful can be done, call this after
       `rospy.init_node(...)`.
     """
-    start_actions()
+    init_kb()
+    init_sdb()
+    init_ps()
 
-    if block:
-        rospy.spin()
 
-
-init = init_interfaces
+init = init_controller

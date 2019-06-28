@@ -4,11 +4,11 @@ An easier way to hook into [ROSPlan](https://github.com/KCL-Planning/ROSPlan). T
 ## How to use
 Somewhere in your code, you have to import and initialize `rosplan`. Do the initializing *after* you have initialized rospy.
 ```
-import rosplan
+import rosplan_pytools
 
 if __name__=="__main__":
-  rospy.init_node('name')
-  rosplan.init()
+  rospy.init_node("name")
+  rosplan_pytools.init()
   rospy.spin()
 ```
 
@@ -40,7 +40,7 @@ def talk(msg, loc):
 `receive_action` can also take arguments if you don't want to use the same name (or it's taken). Also, argument order does not matter, just the names.
 
 ```
-@planner.planner_simple_action('talk')
+@planner.planner_simple_action("talk")
 def different_fn_name(loc, msg):
   say_stuff()
   set_effects()
@@ -92,7 +92,7 @@ class Listener(planner.ActionSink):
   name = ["talker_1", "talker_2"]
   
   def start(self, action_name, arguments):
-    say_stuff()    
+    say_stuff()
 ```
 
 ## Manipulating ROSPlan
@@ -100,19 +100,22 @@ class Listener(planner.ActionSink):
 Sometimes you want to tell ROSPlan what to do. To do that, you first need to add goals, then run the planner.
 
 ```
-import rosplan
-import rosplan.controller.knowledge_base as kb
-import rosplan.controller.planning_system as ps
+import rosplan_pytools
+import rosplan_pytools.controller.knowledge_base as kb
+import rosplan_pytools.controller.scene_database as sdb
+import rosplan_pytools.controller.planning_system as ps
   
-rosplan.init()
+rosplan_pytools.init()
   
 # Using the KB
-kb.add_instance('location', 'loc1')
+kb.add_instance("loc1", "location")
   
 # You can store stuff into the scene database with a third arg
-kb.add_instance('message', 'msg1', std_msgs.msg.String('Be sure to drink your ovaltine'))
-kb.add_goal('robotat', loc='loc1')
-kb.add_goal('hasreceivedmessage', msg='msg1', loc='loc1')
+kb.add_instance("msg1", "msg_type")
+sdb.add_element("msg1", sdb.Element(std_msgs.msg.String("Be sure to drink your ovaltine"), "msg_type"))
+
+kb.add_goal("robot-at", loc="loc1")
+kb.add_goal("has-received-message", msg="msg1", loc="loc1")
   
 # Then, plan and execute! using PS
 ps.plan()

@@ -1,45 +1,60 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 import rospy
-from rosplan.controller import knowledge_base as kb
+from rosplan_pytools.controller import knowledge_base as kb
+from rosplan_pytools.controller import scene_database as sdb
 from geometry_msgs.msg import Pose, Point, Quaternion
 
 
-def prepare_kb():
+def prepare_instances():
+
     p = Pose(Point(0.25, .0, .0), Quaternion(0, 0, 0, 1))
-    kb.add_instance('p1', "place", p)
+    kb.add_instance("p1", "place")
+    sdb.add_element("p1", sdb.Element(p, "place"))
+
     p = Pose(Point(0.50, .0, .0), Quaternion(0, 0, 0, 1))
-    kb.add_instance('p2', 'place', p)
+    kb.add_instance("p2", "place")
+    sdb.add_element("p2", sdb.Element(p, "place"))
+
     p = Pose(Point(0.75, .0, .0), Quaternion(0, 0, 0, 1))
-    kb.add_instance('p3', 'place', p)
+    kb.add_instance("p3", "place")
+    sdb.add_element("p3", sdb.Element(p, "place"))
+
     p = Pose(Point(1.00, .0, .0), Quaternion(0, 0, 0, 1))
-    kb.add_instance('p4', 'place', p)
+    kb.add_instance("p4", "place")
+    sdb.add_element("p4", sdb.Element(p, "place"))
 
 
 def retrieve_instances():
-    p1, p1_type = kb.get_instance('p1', 'place', Pose._type)
-    print 'instance:\n', p1
-    p2, p2_type = kb.get_instance('p2', None, Pose._type)
-    print 'instance:\n', p2
 
-    kb._value_types['place'] = Pose._type
-    p3, p3_type = kb.get_instance('p3', 'place')
-    print 'instance:\n', p3
-    p4, p4_type = kb.get_instance('p4')
-    print 'instance:\n', p4
+    success, p1 = sdb.get_element("p1")
+    print("instance:\n", p1.value(), p1.type(), p1.category())
+
+    success, p2 = sdb.get_element("p2")
+    print("instance:\n", p2.value(), p2.type(), p2.category())
+
+    success, p3 = sdb.get_element("p3")
+    print("instance:\n", p3.value(), p3.type(), p3.category())
+
+    success, p4 = sdb.get_element("p4")
+    print("instance:\n", p4.value(), p4.type(), p4.category())
 
 
 def main():
+
     rospy.init_node("pytools_ask_for_instance")
 
-    kb.init()
-    kb.clear_predicates()
-    kb.clear_goals()
+    kb.initialize()
+    kb.reset()
 
-    prepare_kb()
+    sdb.initialize()
+    sdb.reset()
+
+    prepare_instances()
     retrieve_instances()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

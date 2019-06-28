@@ -1,8 +1,8 @@
-from knowledge_base import init as init_kb
-from planning_system import init as init_ps
+from .controller import init_controller
+from .interfaces import init_interfaces
 
 
-def init_controller():
+def init(is_blocked=False, auto_register_actions=True):
     """
     Initialize all the things!!
 
@@ -15,8 +15,6 @@ def init_controller():
       anything useful can be done, call this after
       `rospy.init_node(...)`.
     """
-    init_kb()
-    init_ps()
+    init_controller()
+    init_interfaces(is_blocked, auto_register_actions)
 
-
-init = init_controller

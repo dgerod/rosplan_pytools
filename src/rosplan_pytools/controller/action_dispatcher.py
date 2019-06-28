@@ -1,6 +1,6 @@
 import rospy
 from rosplan_dispatch_msgs.msg import ActionDispatch
-from rosplan.common.utils import dict_to_keyval
+from rosplan_pytools.common.utils import dict_to_keyval
 
 _action_dispatch_publisher = None
 
@@ -10,7 +10,7 @@ def init(prefix=None):
         prefix = "/kcl_rosplan"
 
     global _action_dispatch_publisher
-    _action_dispatch_publisher = rospy.Publisher(prefix + '/action_dispatch',
+    _action_dispatch_publisher = rospy.Publisher(prefix + "/action_dispatch",
                                                  ActionDispatch,
                                                  queue_size=10)
 
