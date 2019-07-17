@@ -1,7 +1,7 @@
 from threading import Lock
 import rospy
 from rosplan_pytools.controller.common.sdb_element import Element
-from rosplan_pytools.controller.common.sdb_element import convert_element_to_string, convert_string_to_element
+from rosplan_pytools.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
 from rosplan_pytools.controller.nodes.ros_server_connection import RosServerConnection
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
@@ -76,7 +76,7 @@ class SceneDatabase(object):
         rospy.loginfo("add_element")
 
         success = False
-        element = convert_string_to_element(request.metadata, request.value)
+        element = string_to_sdb_element(request.metadata, request.value)
 
         with self._lock:
             if not self._ros_server.element_exists(request.key) and request.value != '':
@@ -95,11 +95,9 @@ class SceneDatabase(object):
         with self._lock:
             if self._ros_server.element_exists(request.key):
                 success, result = self._ros_server.get_element(request.key)
-                print (success)
                 if success:
-                    metadata, value = convert_element_to_string(Element(result[0], result[1]))
+                    metadata, value = sdb_element_to_string(Element(result[0], result[1]))
 
-        print (success, metadata, value)
         return success, metadata, value
 
     def _update_element(self, request):
@@ -107,7 +105,7 @@ class SceneDatabase(object):
         rospy.loginfo("update_element")
 
         success = False
-        element = convert_string_to_element(request.metadata, request.value)
+        element = string_to_sdb_element(request.metadata, request.value)
 
         with self._lock:
             if self._ros_server.element_exists(request.key) and request.value != "":
