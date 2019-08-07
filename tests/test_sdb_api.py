@@ -5,6 +5,7 @@ import mock
 import rosplan_pytools.controller.scene_database as sdb
 from std_msgs.msg import Empty
 
+
 class TestSceneDatabase(unittest.TestCase):
 
     @mock.patch('rosplan_pytools.controller.scene_database.rospy.has_param')

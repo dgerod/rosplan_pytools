@@ -10,8 +10,10 @@ def main():
     sdb.initialize()
 
     print("\nElements ---")
-    print(str(sdb.list_elements()) + "\n")
-    for name in sdb.list_elements():
+    elements = sdb.list_elements()
+    print(str(elements) + "\n")
+
+    for name in elements:
         print("[" + name + "] -> [" + str(sdb.get_element(name)[1]) + "]")
 
 

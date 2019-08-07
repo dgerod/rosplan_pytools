@@ -1,0 +1,5 @@
+string key
+string metadata
+string value
+---
+bool success

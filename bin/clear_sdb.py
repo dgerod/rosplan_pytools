@@ -7,7 +7,7 @@ from rosplan_pytools.controller import scene_database as sdb
 def main():
 
     sdb.initialize()
-    sdb.remove_all_elements()
+    sdb.remove_elements()
 
 
 if __name__ == "__main__":

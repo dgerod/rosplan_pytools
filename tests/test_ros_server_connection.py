@@ -2,7 +2,7 @@
 
 import unittest
 import mock
-import rosplan_pytools.controller.scene_database as sdb
+from rosplan_pytools.controller.nodes.ros_server_connection import RosServerConnection
 from rosplan_pytools.common import message_converter
 
 from std_msgs.msg import Empty
@@ -20,7 +20,7 @@ class TestRosServerConnection(unittest.TestCase):
         mock_set_param.side_effect = [True]
         mock_get_param.side_effect = [0, 0]
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 1)
@@ -37,7 +37,7 @@ class TestRosServerConnection(unittest.TestCase):
         mock_set_param.side_effect = [True]
         mock_get_param.side_effect = [0]
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 0)
@@ -52,7 +52,7 @@ class TestRosServerConnection(unittest.TestCase):
         mock_set_param.side_effect = [True]
         mock_get_param.side_effect = [0]
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 1)
@@ -91,7 +91,7 @@ class TestRosServerConnection(unittest.TestCase):
         mock_set_param.side_effect = [True]
         mock_get_param.side_effect = [0]
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 1)
@@ -116,7 +116,7 @@ class TestRosServerConnection(unittest.TestCase):
         mock_set_param.side_effect = [True]
         mock_get_param.side_effect = [0]
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
 
         self.assertEqual(mock_has_param.call_count, 1)
         self.assertEqual(mock_set_param.call_count, 1)
@@ -137,7 +137,7 @@ class TestRosServerConnectionWithRealRosServer(unittest.TestCase):
 
     def test(self):
 
-        ros_server = sdb._RosServerConnection()
+        ros_server = RosServerConnection()
         ros_server.reset()
 
         self.assertEqual(ros_server.num_elements(), 0)

@@ -1,375 +1,111 @@
-"""
- ROSPlan Scene Database interface
- Lets you easily put data in the scene database that it is implemented
- using Ros Server
-"""
-
-from __future__ import absolute_import
-import uuid
 import rospy
-from rosplan_pytools.common import message_converter
+from rosplan_pytools.controller.common.sdb_element import Element
+from rosplan_pytools.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
+from rosplan_pytools.controller.nodes.scene_database import ServiceNames
+from rosplan_pytools.srv import DiagnosticsDB, ResetDB
+from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
 
 
-_ros_server = None
+_services = {}
 
 
-class _RosServerConnection(object):
+def _initialize_services(sdb_name):
 
-    def __init__(self, prefix="scene_database"):
+    global _services
 
-        self._param_prefix = prefix
+    service_name = sdb_name + "/" + ServiceNames.DIAGNOSTICS_DB
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.DIAGNOSTICS_DB] = rospy.ServiceProxy(service_name, DiagnosticsDB)
 
-        if not rospy.has_param(self._create_key("num_elements")):
-            rospy.set_param(self._create_key("num_elements"), 0)
+    service_name = sdb_name + "/" + ServiceNames.RESET_DB
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.RESET_DB] = rospy.ServiceProxy(service_name, ResetDB)
 
-    def reset(self):
+    service_name = sdb_name + "/" + ServiceNames.ADD_ELEMENT
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.ADD_ELEMENT] = rospy.ServiceProxy(service_name, AddElement)
 
-        for edx in range(0, self._get_num_elements()):
-            try:
-                id_ = edx + 1
-                key = self._create_key("elements/" + str(id_))
-                rospy.delete_param(key)
-            except KeyError:
-                pass
+    service_name = sdb_name + "/" + ServiceNames.FIND_ELEMENT
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.FIND_ELEMENT] = rospy.ServiceProxy(service_name, FindElement)
 
-        self._set_num_elements(0)
+    service_name = sdb_name + "/" + ServiceNames.UPDATE_ELEMENT
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.UPDATE_ELEMENT] = rospy.ServiceProxy(service_name, UpdateElement)
 
-    def num_elements(self):
+    service_name = sdb_name + "/" + ServiceNames.REMOVE_ELEMENT
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.REMOVE_ELEMENT] = rospy.ServiceProxy(service_name, RemoveElement)
 
-        return self._get_num_elements()
+    service_name = sdb_name + "/" + ServiceNames.RETRIEVE_ELEMENTS
+    rospy.wait_for_service(service_name)
+    _services[ServiceNames.RETRIEVE_ELEMENTS] = rospy.ServiceProxy(service_name, RetrieveElements)
 
-    def add_element(self, name, message, metadata=""):
 
-        key, id_ = self._find_element_by_name(name)
-        if key != "":
-            return False
+def initialize(sdb_name="scene_database"):
 
-        msg_value = message_converter.convert_ros_message_to_dictionary(message)
+    _initialize_services(sdb_name)
 
-        # def replace_types_in_dictionary(dictionary):
-        #
-        #     for k, v in dictionary.iteritems():
-        #         if type(v) is dict:
-        #             replace_types_in_dictionary(dictionary[k])
-        #         else:
-        #             if type(v) is float64:
-        #                 dictionary[k] = float(v)
-        #
-        #     return dictionary
-        #
-        # print msg_value
-        # msg_value = replace_types_in_dictionary(msg_value)
 
-        element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
-                   'msg_type': message.__class__._type,'msg_value': msg_value}
+def reset():
 
-        id_ = self._get_num_elements() + 1
-        rospy.set_param(self._create_key("elements/" + str(id_)), element)
-
-        self._set_num_elements(self._get_num_elements() + 1)
-
-        return True
-
-    def update_element(self, name, message):
-
-        key, id_ = self._find_element_by_name(name)
-        if key == "":
-            return False
-
-        element = rospy.get_param(key, dict())
-        if not element or element['msg_type'] != message._type:
-            return False
-
-        msg_value = message_converter.convert_ros_message_to_dictionary(message)
-        updated_element = {'name': name, 'metadata': element['metadata'], 'uuid': element['uuid'],
-                           'msg_type': element['msg_type'], 'msg_value': msg_value}
-        rospy.set_param(key, updated_element)
-
-        return True
-
-    def remove_element(self, name):
-
-        key, id_ = self._find_element_by_name(name)
-
-        if key == "":
-            return False
-
-        num_elements = self._get_num_elements()
-        is_last_element = (id_ == self._get_num_elements())
-
-        if is_last_element:
-            rospy.delete_param(key)
-
-        else:
-            element_id = num_elements
-            last_element_key = self._create_key("elements/" + str(element_id))
-            element = rospy.get_param(last_element_key)
-            rospy.delete_param(last_element_key)
-            rospy.set_param(key, element)
-
-        num_elements -= 1
-        self._set_num_elements(num_elements)
-
-        return True
-
-    def element_exists(self, name):
-
-        key, id_ = self._find_element_by_name(name)
-        return key != ""
-
-    def get_element(self, name):
-
-        key, id_ = self._find_element_by_name(name)
-        if key == "":
-            return False, ()
-
-        element = rospy.get_param(key, dict())
-        if element:
-            return True, \
-                   (message_converter.convert_dictionary_to_ros_message(element['msg_type'],
-                                                                        element['msg_value'],
-                                                                        'message'),
-                    element['metadata'],
-                    element['uuid'])
-        else:
-            return False, ()
-
-    def get_all_elements(self):
-
-        elements = list()
-        for edx in range(0, self._get_num_elements()):
-
-            id_ = edx + 1
-            key = self._create_key("elements/" + str(id_))
-
-            if rospy.has_param(key):
-
-                name = rospy.get_param(key + "/name")
-                metadata = rospy.get_param(key + "/metadata")
-                msg_type = rospy.get_param(key + "/msg_type")
-                msg_value = rospy.get_param(key + "/msg_value")
-                uuid_ = rospy.get_param(key + "/uuid")
-
-                message = message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
-                elements.append((name, message, metadata, uuid_))
-
-            else:
-                raise RuntimeError("Data stored is inconsistent.")
-
-        return elements
-
-    def _create_key(self, name):
-        return "/" + self._param_prefix + "/" + name
-
-    def _get_num_elements(self):
-        return rospy.get_param(self._create_key("num_elements"), 0)
-
-    def _set_num_elements(self, number):
-        if number < 0:
-            number = 0
-        return rospy.set_param(self._create_key("num_elements"), number)
-
-    def _find_element_by_name(self, name):
-
-        found = False
-        element_key = ""
-        element_id = -1
-
-        for edx in range(0, self._get_num_elements()):
-            element_id = edx + 1
-            element_key = self._create_key("elements/" + str(element_id))
-            if rospy.get_param(element_key + "/name", "") == name:
-                found = True
-                break
-
-        if not found:
-            element_key = ""
-            element_id = -1
-
-        return element_key, element_id
-
-
-class Element(object):
-
-    @staticmethod
-    def extract_ros_type(message):
-        return message._type
-
-    def __init__(self, value=None, metadata=""):
-
-        self._metadata = metadata
-
-        if value is not None:
-            self._ros_message_value = value
-            self._ros_message_type = self.extract_ros_type(value)
-        else:
-            self._ros_message_value = None
-            self._ros_message_type = ""
-
-    def __str__(self):
-
-        if self._ros_message_value is not None:
-            value = self._ros_message_value
-        else:
-            value = ""
-
-        return "%s, %s, %s" % (self._ros_message_type, value, self._metadata)
-
-    def __eq__(self, other):
-
-        return self._ros_message_type == other._ros_message_type
-
-    def clean(self):
-        self._metadata = ""
-        self._ros_message_value = None
-        self._ros_message_type = ""
-
-    def is_valid(self):
-        return self._ros_message_value is not None
-
-    def metadata(self):
-        return self._metadata
-
-    def value(self):
-        return self._ros_message_value
-
-    def type(self):
-        return self._ros_message_type
-
-
-def _find_element_by_name(name):
-
-    if not _ros_server.element_exists(name):
-        return Element()
-
-    success, element = _ros_server.get_element(name)
-    if not success:
-        return Element()
-    else:
-        return Element(element[0], element[1])
-
-
-def initialize(sdb_name=None):
-
-    global _ros_server
-
-    if sdb_name is None:
-        sdb_name = "scene_database"
-
-    _ros_server = _RosServerConnection(sdb_name)
+    return _services[ServiceNames.RESET_DB]().success
 
 
 def num_elements():
 
-    return _ros_server.num_elements()
+    return _services[ServiceNames.DIAGNOSTICS_DB]().num_elements
 
 
 def exist_element(name):
-    """
-    :param name: name of the element (str)
-    :return: success or failure
-    """
 
-    if not isinstance(name, str):
-        raise TypeError
-
-    return _ros_server.element_exists(name)
+    return _services[ServiceNames.FIND_ELEMENT](name).success
 
 
 def list_elements():
 
-    names = list()
-    elements = _ros_server.get_all_elements()
-    for name, message, metadata, id_ in elements:
-        names.append(name)
-
-    return names
+    return _services[ServiceNames.RETRIEVE_ELEMENTS]().keys
 
 
 def add_element(name, element):
-    """
-    :param name: name of the element (str)
-    :param element: an element instance (Element)
-    :return: success or failure
-    """
 
     if not isinstance(name, str) or not isinstance(element, Element):
         raise TypeError
 
-    success = False
-
-    if not exist_element(name) and element.is_valid():
-
-        _ros_server.add_element(name, element.value(), element.metadata())
-
-        updated_element = _find_element_by_name(name)
-        success = updated_element.is_valid()
-
-    return success
+    metadata, value = sdb_element_to_string(element)
+    return _services[ServiceNames.ADD_ELEMENT](name, metadata, value).success
 
 
 def update_element(name, element):
-    """
-    :param name: name of the element (str)
-    :param element: an element instance (Element)
-    :return: success or failure
-    """
 
     if not isinstance(name, str) or not isinstance(element, Element):
         raise TypeError
 
-    success = False
-    registered_element = _find_element_by_name(name)
-
-    if registered_element.is_valid() and registered_element == element:
-
-        _ros_server.update_element(name, element.value())
-
-        updated_element = _find_element_by_name(name)
-        success = updated_element.is_valid()
-
-    return success
+    metadata, value = sdb_element_to_string(element)
+    return _services[ServiceNames.UPDATE_ELEMENT](name, element.metadata(), value).success
 
 
 def get_element(name):
-    """
-    :param name:
-    :return: success or failure
-    """
 
     if not isinstance(name, str):
         raise TypeError
 
-    element = _find_element_by_name(name)
+    element = Element()
+
+    response = _services[ServiceNames.FIND_ELEMENT](name)
+    if response.success:
+        element = string_to_sdb_element(response.metadata, response.value)
 
     return element.is_valid(), element
 
 
 def remove_element(name):
-    """
-    :param name:
-    :return: success or failure
-    """
 
-    if not isinstance(name, str):
-        raise TypeError
-
-    if _find_element_by_name(name).is_valid():
-
-        success = _ros_server.remove_element(name)
-        return success
-
-    else:
-        return False
+    _services[ServiceNames.REMOVE_ELEMENT](name)
 
 
-def remove_all_elements():
+def remove_elements():
 
-    elements = _ros_server.get_all_elements()
-    for name, message, id_ in elements:
-        _ros_server.remove_element(name)
-
-
-def reset():
-
-    _ros_server.reset()
+    keys = _services[ServiceNames.RETRIEVE_ELEMENTS]().keys
+    for k in keys:
+        _services[ServiceNames.REMOVE_ELEMENT](k)
