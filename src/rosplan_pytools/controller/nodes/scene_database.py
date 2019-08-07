@@ -20,10 +20,7 @@ class ServiceNames(object):
 
 class SceneDatabase(object):
 
-    def __init__(self, sdb_name, service_prefix):
-
-        if sdb_name is None:
-            sdb_name = 'scene_database'
+    def __init__(self, service_prefix, sdb_name='scene_database'):
 
         self._lock = Lock()
         self._ros_server = RosServerConnection(sdb_name)
@@ -154,6 +151,11 @@ class SceneDatabase(object):
 def start_node(name):
 
     try:
+
+        NODE_NAME = name
+        SERVICE_NAME = name
+        DATABASE_NAME = name
+
         rospy.init_node(name)
         SceneDatabase(name, name)
         rospy.spin()

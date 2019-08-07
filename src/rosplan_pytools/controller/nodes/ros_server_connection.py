@@ -37,21 +37,6 @@ class RosServerConnection(object):
             return False
 
         msg_value = message_converter.convert_ros_message_to_dictionary(message)
-
-        # def replace_types_in_dictionary(dictionary):
-        #
-        #     for k, v in dictionary.iteritems():
-        #         if type(v) is dict:
-        #             replace_types_in_dictionary(dictionary[k])
-        #         else:
-        #             if type(v) is float64:
-        #                 dictionary[k] = float(v)
-        #
-        #     return dictionary
-        #
-        # print msg_value
-        # msg_value = replace_types_in_dictionary(msg_value)
-
         element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
                    'msg_type': message.__class__._type,'msg_value': msg_value}
 
@@ -182,3 +167,17 @@ class RosServerConnection(object):
             element_id = -1
 
         return element_key, element_id
+
+    # def _replace_types_in_dictionary(dictionary):
+    #
+    #     for k, v in dictionary.iteritems():
+    #         if type(v) is dict:
+    #             replace_types_in_dictionary(dictionary[k])
+    #         else:
+    #             if type(v) is float64:
+    #                 dictionary[k] = float(v)
+    #
+    #     return dictionary
+    #
+    # print msg_value
+    # msg_value = replace_types_in_dictionary(msg_value)
