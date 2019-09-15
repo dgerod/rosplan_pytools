@@ -328,7 +328,7 @@ class CheckActionAndProcessEffects(object):
 
     def validate_parameters(self, arguments):
 
-        rospy.loginfo("[RPpt][CAPE] check parameters")
+        rospy.loginfo("[RPpt][CAPE] validate parameters")
 
         # Only check parameters, pre-conditions are not considered
         found = [False] * len(self.params.typed_parameters)
