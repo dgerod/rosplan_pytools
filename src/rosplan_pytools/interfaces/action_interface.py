@@ -328,7 +328,7 @@ class CheckActionAndProcessEffects(object):
 
     def validate_parameters(self, arguments):
 
-        rospy.loginfo("[RPpt][CAPE] check parameters")
+        rospy.loginfo("[RPpt][CAPE] validate parameters")
 
         # Only check parameters, pre-conditions are not considered
         found = [False] * len(self.params.typed_parameters)
@@ -357,7 +357,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kb.rm_predicate(effect_name, **effect_value)
+            kb.remove_predicate(effect_name, **effect_value)
 
         # Simple start add effects
         for edx, effect in enumerate(self.op.at_start_add_effects):
@@ -377,7 +377,7 @@ class CheckActionAndProcessEffects(object):
                 key = self.predicates[effect.name].typed_parameters[pdx].key
                 value = self.bound_params[effect.typed_parameters[pdx].key]
                 effect_value[key] = value
-            kb.rm_predicate(effect_name, **effect_value)
+            kb.remove_predicate(effect_name, **effect_value)
 
         # Simple end add effects
         for edx, effect in enumerate(self.op.at_end_add_effects):

@@ -11,10 +11,11 @@ class ServiceNames(object):
 
     DIAGNOSTICS_DB = 'diagnostics_db'
     RESET_DB = 'reset_db'
+
     ADD_ELEMENT = 'add_element'
+    REMOVE_ELEMENT = 'remove_element'
     FIND_ELEMENT = 'find_element'
     UPDATE_ELEMENT = 'update_element'
-    REMOVE_ELEMENT = 'remove_element'
     RETRIEVE_ELEMENTS = 'retrieve_elements'
 
 
@@ -53,7 +54,7 @@ class SceneDatabase(object):
 
     def _diagnostics_db(self, request):
 
-        rospy.loginfo("diagnostics_db")
+        rospy.loginfo("[RPpt][SDB] _diagnostics_db")
 
         with self._lock:
             num_elements = self._ros_server.num_elements()
@@ -62,7 +63,7 @@ class SceneDatabase(object):
 
     def _reset_db(self, request):
 
-        rospy.loginfo("reset_db")
+        rospy.loginfo("[RPpt][SDB] _reset_db")
 
         with self._lock:
             self._ros_server.reset()
@@ -70,10 +71,11 @@ class SceneDatabase(object):
 
     def _add_element(self, request):
 
-        rospy.loginfo("add_element")
+        rospy.loginfo("[RPpt][SDB] _add_element")
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
+        rospy.loginfo("[RPpt][SDB] element: %s = %s", request.key, request.value)
 
         with self._lock:
             if not self._ros_server.element_exists(request.key) and request.value != '':
@@ -83,7 +85,7 @@ class SceneDatabase(object):
 
     def _find_element(self, request):
 
-        rospy.loginfo("find_element")
+        rospy.loginfo("[RPpt][SDB] _find_element")
 
         success = False
         metadata = ""
@@ -99,7 +101,8 @@ class SceneDatabase(object):
 
     def _update_element(self, request):
 
-        rospy.loginfo("update_element")
+        rospy.loginfo("[RPpt][SDB] _update_element")
+        rospy.loginfo("[RPpt][SDB] element %s = %s", request.key, request.value)
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
@@ -112,7 +115,7 @@ class SceneDatabase(object):
 
     def _remove_element(self, request):
 
-        rospy.loginfo("remove_element")
+        rospy.loginfo("[RPpt][SDB] _remove_element")
 
         success = False
         key = request.key
@@ -148,17 +151,15 @@ class SceneDatabase(object):
         return True
 
 
-def start_node(name):
+def start_node(node_name, database_name):
 
     try:
+        rospy.init_node(node_name)
+        SceneDatabase(node_name, database_name)
 
-        NODE_NAME = name
-        SERVICE_NAME = name
-        DATABASE_NAME = name
-
-        rospy.init_node(name)
-        SceneDatabase(name, name)
+        rospy.set_param(node_name + '/is_ready', True)
+        rospy.loginfo("Scene Database: Ready to receive")
         rospy.spin()
 
     except rospy.ROSInterruptException:
-        pass
+        rospy.set_param(node_name + '/is_ready', False)
