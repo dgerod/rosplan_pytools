@@ -63,22 +63,10 @@ This is the way to make more robust actions, and function-based actions are auto
 class Talker(planner.SimpleAction):
   name = "talk"
   
-  def start(arguments):
+  def _start(arguments):
     check_preconditions()
     say_stuff()
     set_effects()
-    
-  def cancel():
-    shut_up()
-    tear_down()
-    
-  def pause():
-    self.interupted = True
-    shut_up()
-    
-  def resume():
-    # arguments are additionally stored as `self.arguments`
-    self.start(self.arguments)
 ```
 
 That's it! The relevant code will be called as ROSPlan dispatches it (so long as you called the initializer in the beginning)
@@ -91,7 +79,7 @@ A special class that could receive for multiple actions exists, it is the `Actio
 class Listener(planner.ActionSink):
   name = ["talker_1", "talker_2"]
   
-  def start(self, action_name, arguments):
+  def _start(self, action_name, arguments):
     say_stuff()
 ```
 
