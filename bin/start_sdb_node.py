@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 import os
 import rospy
-from rosplan_pytools.controller.nodes import scene_database
+from rosplan_pytools.controller.nodes.scene_database import scene_database
 
 
 DEFAULT_NODE_NAME = "scene_database"
@@ -34,6 +34,11 @@ def main():
         else:
             usage()
             sys.exit(1)
+
+        # TBD-TEMP @dgerod: Temporary solution for ZAPS
+        # This is not working as roslaunch is passing other arguments to the node.
+        node_name = DEFAULT_NODE_NAME
+        sdb_name = DEFAULT_NODE_NAME
 
         scene_database.start_node(node_name, sdb_name)
 

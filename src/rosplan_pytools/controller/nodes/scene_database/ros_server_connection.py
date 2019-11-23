@@ -36,6 +36,8 @@ class RosServerConnection(object):
         if key != "":
             return False
 
+        #element = serializer(uuid, name, message)
+
         msg_value = message_converter.convert_ros_message_to_dictionary(message)
         element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
                    'msg_type': message.__class__._type,'msg_value': msg_value}

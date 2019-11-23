@@ -2,8 +2,9 @@
 
 import unittest
 import mock
-from rosplan_pytools.controller.nodes.ros_server_connection import RosServerConnection
+
 from rosplan_pytools.common import message_converter
+from rosplan_pytools.controller.nodes.scene_database.ros_server_connection import RosServerConnection
 
 from std_msgs.msg import Empty
 from geometry_msgs.msg import Pose

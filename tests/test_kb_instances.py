@@ -5,7 +5,6 @@ import mock
 
 import rosplan_pytools.controller.knowledge_base as kb
 
-from geometry_msgs.msg import Pose
 from rosplan_knowledge_msgs.srv import GetInstanceServiceResponse
 from rosplan_knowledge_msgs.srv import KnowledgeUpdateServiceResponse
 

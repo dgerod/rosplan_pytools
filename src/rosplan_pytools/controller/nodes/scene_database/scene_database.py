@@ -1,22 +1,13 @@
 from threading import Lock
 import rospy
+
 from rosplan_pytools.controller.common.sdb_element import Element
 from rosplan_pytools.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
-from rosplan_pytools.controller.nodes.ros_server_connection import RosServerConnection
+from rosplan_pytools.controller.nodes.scene_database.service_names import ServiceNames
+from rosplan_pytools.controller.nodes.scene_database.ros_server_connection import RosServerConnection
+
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
-
-
-class ServiceNames(object):
-
-    DIAGNOSTICS_DB = 'diagnostics_db'
-    RESET_DB = 'reset_db'
-
-    ADD_ELEMENT = 'add_element'
-    REMOVE_ELEMENT = 'remove_element'
-    FIND_ELEMENT = 'find_element'
-    UPDATE_ELEMENT = 'update_element'
-    RETRIEVE_ELEMENTS = 'retrieve_elements'
 
 
 class SceneDatabase(object):
@@ -71,8 +62,7 @@ class SceneDatabase(object):
 
     def _add_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _add_element")
-        rospy.loginfo("[RPpt][SDB] element: %s = %s", request.key, request.value)
+        rospy.loginfo("[RPpt][SDB] _add_element (%s) = %s", request.key, request.value)
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
@@ -85,7 +75,7 @@ class SceneDatabase(object):
 
     def _find_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _find_element")
+        rospy.loginfo("[RPpt][SDB] _find_element (%s)", request.key)
 
         success = False
         metadata = ""
@@ -101,8 +91,7 @@ class SceneDatabase(object):
 
     def _update_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _update_element")
-        rospy.loginfo("[RPpt][SDB] element %s = %s", request.key, request.value)
+        rospy.loginfo("[RPpt][SDB] _update_element (%s) = %s", request.key, request.value)
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
@@ -115,7 +104,7 @@ class SceneDatabase(object):
 
     def _remove_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _remove_element")
+        rospy.loginfo("[RPpt][SDB] _remove_element (%s)", request.key)
 
         success = False
         key = request.key
