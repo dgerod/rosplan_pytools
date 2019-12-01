@@ -1,22 +1,13 @@
 from threading import Lock
 import rospy
+
 from rosplan_pytools.controller.common.sdb_element import Element
 from rosplan_pytools.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
-from rosplan_pytools.controller.nodes.ros_server_connection import RosServerConnection
+from rosplan_pytools.controller.nodes.scene_database.service_names import ServiceNames
+from rosplan_pytools.controller.nodes.scene_database.ros_server_connection import RosServerConnection
+
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
-
-
-class ServiceNames(object):
-
-    DIAGNOSTICS_DB = 'diagnostics_db'
-    RESET_DB = 'reset_db'
-
-    ADD_ELEMENT = 'add_element'
-    REMOVE_ELEMENT = 'remove_element'
-    FIND_ELEMENT = 'find_element'
-    UPDATE_ELEMENT = 'update_element'
-    RETRIEVE_ELEMENTS = 'retrieve_elements'
 
 
 class SceneDatabase(object):
@@ -25,9 +16,9 @@ class SceneDatabase(object):
 
         self._lock = Lock()
         self._ros_server = RosServerConnection(sdb_name)
-        self.start_services(service_prefix)
+        self._start_services(service_prefix)
 
-    def start_services(self, prefix):
+    def _start_services(self, prefix):
 
         service_prefix = prefix + '/'
 
@@ -71,11 +62,10 @@ class SceneDatabase(object):
 
     def _add_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _add_element")
+        rospy.loginfo("[RPpt][SDB] _add_element (%s) = %s", request.key, request.value)
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
-        rospy.loginfo("[RPpt][SDB] element: %s = %s", request.key, request.value)
 
         with self._lock:
             if not self._ros_server.element_exists(request.key) and request.value != '':
@@ -85,7 +75,7 @@ class SceneDatabase(object):
 
     def _find_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _find_element")
+        rospy.loginfo("[RPpt][SDB] _find_element (%s)", request.key)
 
         success = False
         metadata = ""
@@ -101,8 +91,7 @@ class SceneDatabase(object):
 
     def _update_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _update_element")
-        rospy.loginfo("[RPpt][SDB] element %s = %s", request.key, request.value)
+        rospy.loginfo("[RPpt][SDB] _update_element (%s) = %s", request.key, request.value)
 
         success = False
         element = string_to_sdb_element(request.metadata, request.value)
@@ -115,7 +104,7 @@ class SceneDatabase(object):
 
     def _remove_element(self, request):
 
-        rospy.loginfo("[RPpt][SDB] _remove_element")
+        rospy.loginfo("[RPpt][SDB] _remove_element (%s)", request.key)
 
         success = False
         key = request.key
@@ -128,7 +117,7 @@ class SceneDatabase(object):
 
     def _retrieve_elements(self, request):
 
-        rospy.loginfo("retrieve_elements")
+        rospy.loginfo("[RPpt][SDB] _retrieve_elements")
 
         keys = []
 
@@ -141,7 +130,7 @@ class SceneDatabase(object):
 
     def _remove_all_elements(self):
 
-        rospy.loginfo("remove_all_elements")
+        rospy.loginfo("[RPpt][SDB] _remove_all_elements")
 
         with self._lock:
             elements = self._ros_server.get_all_elements()
@@ -158,7 +147,7 @@ def start_node(node_name, database_name):
         SceneDatabase(node_name, database_name)
 
         rospy.set_param(node_name + '/is_ready', True)
-        rospy.loginfo("Scene Database: Ready to receive")
+        rospy.loginfo("[RPpt][SDB] Scene Database: Ready to receive")
         rospy.spin()
 
     except rospy.ROSInterruptException:

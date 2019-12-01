@@ -2,6 +2,7 @@
 
 import unittest
 import mock
+
 import rosplan_pytools.controller.scene_database as sdb
 from std_msgs.msg import Empty
 

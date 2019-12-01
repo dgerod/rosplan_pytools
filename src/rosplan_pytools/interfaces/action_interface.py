@@ -97,6 +97,7 @@ def _action_receiver(msg):
 
 
 def register_action(name, action):
+
     global registered_actions
 
     if isinstance(name, str):
@@ -109,6 +110,7 @@ def register_action(name, action):
 def initialize_actions(auto_register_actions=True):
 
     global _list_actions
+
     if auto_register_actions:
         _list_actions = _list_existing_actions
     else:
@@ -122,6 +124,7 @@ def start_actions(dispatch_topic_name=None,
                   is_blocked=False):
 
     global feedback
+
     feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
     feedback = rospy.Publisher(feedback_topic_name, ActionFeedback, queue_size=10)
     dispatch_topic_name = dispatch_topic_name or DEFAULT_DISPATCH_TOPIC_NAME
@@ -488,7 +491,7 @@ def planner_simple_action(action_name):
             name = action_name.lower()  # Lowercase due to ROSPlan quirks
             _spec = inspect.getargspec(func)
 
-            def start(self, duration=0, **kwargs):
+            def _start(self, duration=0, **kwargs):
                 # Check whether function supports a timeout
                 if "duration" in self._spec.args or self._spec.keywords:
                     func(duration, **kwargs)

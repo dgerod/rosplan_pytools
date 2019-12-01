@@ -9,14 +9,14 @@ from rosplan_pytools.interfaces.action_interface import *
 class DemoSimpleAction(SimpleAction):
     name = "demo1"
 
-    def start(self, **kwargs):
+    def _start(self, **kwargs):
         print("Demo 1!!!")
 
 
 class DemoActionWithEffects(Action):
     name = "demo3"
 
-    def start(self, **kwargs):
+    def _start(self, **kwargs):
         print("Demo 3!!!")
         return True
 
@@ -24,7 +24,7 @@ class DemoActionWithEffects(Action):
 class DemoMultipleActions(ActionSink):
     name = ["demo2a", "demo2b"]
 
-    def start(self, action_name, **kwargs):
+    def _start(self, action_name, **kwargs):
         print("Tracer: %s --> %s" % (DemoMultipleActions.name, action_name))
         return True
 

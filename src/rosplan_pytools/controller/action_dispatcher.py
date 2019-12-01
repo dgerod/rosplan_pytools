@@ -5,7 +5,7 @@ from rosplan_pytools.common.utils import dict_to_keyval
 _action_dispatch_publisher = None
 
 
-def init(prefix=None):
+def initialize(prefix=None):
     if prefix is None:
         prefix = "/kcl_rosplan"
 

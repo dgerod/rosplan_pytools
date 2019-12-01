@@ -6,12 +6,19 @@ from rosplan_pytools.controller import action_dispatcher as dispatcher
 
 
 def main():
-    rospy.init_node("pytools_dipatch_action")
-    dispatcher.initialize()
 
-    name = "find_object"
-    parameters = {"c": "c1", "o": "o1"}
-    dispatcher.send_action(name, **parameters)
+    try:
+        rospy.init_node("pytools_dispatch_action")
+        dispatcher.initialize()
+
+        name = "demo1"
+        parameters = {"c": "c1", "o": "o1"}
+        dispatcher.send_action(name, **parameters)
+
+        rospy.spin()
+
+    except rospy.ROSInterruptException:
+        pass
 
 
 if __name__ == "__main__":
