@@ -4,11 +4,8 @@ import json
 
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
-
-from rosparam_storage.common.element import StorageElement
-from rosparam_storage.common.element_converter import string_to_element, element_to_string
 from rosparam_storage.common.service_names import ServiceNames
-from rosparam_storage.controller.ros_server import RosParamsElement, RosParamsServerConnection
+from rosparam_storage.controller.ros_server import RosParamsServerConnection
 
 
 class RosParamsStorageServer(object):
@@ -80,7 +77,7 @@ class RosParamsStorageServer(object):
 
         success = False
         name = request.key
-        without_metadata = ""
+        NO_METADATA = ""
         value = ""
 
         with self._lock:
@@ -88,7 +85,7 @@ class RosParamsStorageServer(object):
             if len(element.keys()) > 0:
                 value = json.dumps(element)
 
-        return success, without_metadata, value
+        return success, NO_METADATA, value
 
     def _update_element(self, request):
 

@@ -27,6 +27,7 @@ class RosParamsServerConnection(object):
         self._set_num_elements(0)
 
     def num_elements(self):
+        # type: () -> int
 
         return self._get_num_elements()
 
@@ -140,17 +141,24 @@ class RosParamsServerConnection(object):
         return elements
 
     def _create_key(self, name):
+        # type: (str) -> str
+
         return "/" + self._param_prefix + '/' + name
 
     def _get_num_elements(self):
+        # type: () -> int
+
         return rospy.get_param(self._create_key('num_elements'), 0)
 
     def _set_num_elements(self, number):
+        # type: (int) -> None
+
         if number < 0:
             number = 0
         return rospy.set_param(self._create_key('num_elements'), number)
 
     def _find_element_by_name(self, name):
+        # type: (name) -> (str, int)
 
         found = False
         element_key = ""

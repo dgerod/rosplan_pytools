@@ -86,9 +86,9 @@ def add_element(key, element):
         raise TypeError
 
     value = StorageElement.to_string(element)
-    without_metadata = ''
+    NO_METADATA = ''
 
-    return _services[ServiceNames.ADD_ELEMENT](key, without_metadata, value).success
+    return _services[ServiceNames.ADD_ELEMENT](key, NO_METADATA, value).success
 
 
 def update_element(key, element):
@@ -98,9 +98,9 @@ def update_element(key, element):
         raise TypeError
 
     value = StorageElement.to_string(element)
-    without_metadata = ''
+    NO_METADATA = ''
 
-    return _services[ServiceNames.UPDATE_ELEMENT](key, without_metadata, value).success
+    return _services[ServiceNames.UPDATE_ELEMENT](key, NO_METADATA, value).success
 
 
 def retrieve_element(key):
