@@ -1,13 +1,13 @@
 
 from __future__ import absolute_import
-from typing import List
 import uuid
 import rospy
+from rosplan_pytools.rosparam.common import ros_message_converter
 
 
-class RosParamsServerConnection(object):
+class RosServerConnection(object):
 
-    def __init__(self, prefix):
+    def __init__(self, prefix='scene_database'):
 
         self._param_prefix = prefix
 
@@ -27,51 +27,50 @@ class RosParamsServerConnection(object):
         self._set_num_elements(0)
 
     def num_elements(self):
-        # type: () -> int
 
         return self._get_num_elements()
 
-    def add_element(self, name, element):
-        # type: (str, dict) -> bool
+    def add_element(self, name, message, metadata=''):
 
         key, id_ = self._find_element_by_name(name)
-        if key != '':
+        if key != "":
             return False
 
-        data = element
-        data['name'] = name
-        data['uuid'] = str(uuid.uuid4())
+        msg_value = ros_message_converter.convert_ros_message_to_dictionary(message)
+        element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
+                   'msg_type': message.__class__._type,'msg_value': msg_value}
 
         id_ = self._get_num_elements() + 1
-        rospy.set_param(self._create_key('elements/' + str(id_)), data)
+        rospy.set_param(self._create_key('elements/' + str(id_)), element)
 
         self._set_num_elements(self._get_num_elements() + 1)
 
         return True
 
-    def update_element(self, name, element):
-        # type: (str, dict) -> bool
-
-        success = False
+    def update_element(self, name, message, metadata=''):
 
         key, id_ = self._find_element_by_name(name)
-        if key != '':
+        if key == "":
+            return False
 
-            data = rospy.get_param(key, dict())
+        element = rospy.get_param(key, dict())
+        if not element or element['msg_type'] != message._type:
+            return False
 
-            updated_element = element
-            updated_element['name'] = data['name']
-            updated_element['uuid'] = data['uuid']
+        if metadata == '':
+            metadata = element['metadata']
 
-            rospy.set_param(key, updated_element)
-            success = True
+        msg_value = ros_message_converter.convert_ros_message_to_dictionary(message)
+        updated_element = {'name': name, 'metadata': metadata, 'uuid': element['uuid'],
+                           'msg_type': element['msg_type'], 'msg_value': msg_value}
+        rospy.set_param(key, updated_element)
 
-        return success
+        return True
 
     def remove_element(self, name):
-        # type: (str) -> bool
 
         key, id_ = self._find_element_by_name(name)
+
         if key == "":
             return False
 
@@ -94,32 +93,30 @@ class RosParamsServerConnection(object):
         return True
 
     def element_exists(self, name):
-        # type: (str) -> bool
 
         key, id_ = self._find_element_by_name(name)
         return key != ''
 
     def get_element(self, name):
-        # type: (str) -> dict
-
-        element = {}
 
         key, id_ = self._find_element_by_name(name)
+        if key == '':
+            return False, ()
 
-        if key != '':
-            data = rospy.get_param(key, dict())
-
-            element = data
-            del element['name']
-            del element['uuid']
-
-        return element
+        element = rospy.get_param(key, dict())
+        if element:
+            return True, \
+                   (ros_message_converter.convert_dictionary_to_ros_message(element['msg_type'],
+                                                                        element['msg_value'],
+                                                                        'message'),
+                    element['metadata'],
+                    element['uuid'])
+        else:
+            return False, ()
 
     def get_all_elements(self):
-        # type: () -> List[dict]
 
         elements = list()
-
         for edx in range(0, self._get_num_elements()):
 
             id_ = edx + 1
@@ -127,13 +124,14 @@ class RosParamsServerConnection(object):
 
             if rospy.has_param(key):
 
-                data = rospy.get_param(key)
+                name = rospy.get_param(key + '/name')
+                metadata = rospy.get_param(key + '/metadata')
+                msg_type = rospy.get_param(key + '/msg_type')
+                msg_value = rospy.get_param(key + '/msg_value')
+                uuid_ = rospy.get_param(key + '/uuid')
 
-                element = data
-                del element['name']
-                del element['uuid']
-
-                elements.append(element)
+                message = ros_message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
+                elements.append((name, message, metadata, uuid_))
 
             else:
                 raise RuntimeError('Data stored is inconsistent.')
@@ -141,24 +139,17 @@ class RosParamsServerConnection(object):
         return elements
 
     def _create_key(self, name):
-        # type: (str) -> str
-
         return "/" + self._param_prefix + '/' + name
 
     def _get_num_elements(self):
-        # type: () -> int
-
         return rospy.get_param(self._create_key('num_elements'), 0)
 
     def _set_num_elements(self, number):
-        # type: (int) -> None
-
         if number < 0:
             number = 0
         return rospy.set_param(self._create_key('num_elements'), number)
 
     def _find_element_by_name(self, name):
-        # type: (name) -> (str, int)
 
         found = False
         element_key = ""
@@ -176,3 +167,4 @@ class RosParamsServerConnection(object):
             element_id = -1
 
         return element_key, element_id
+

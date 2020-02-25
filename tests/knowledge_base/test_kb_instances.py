@@ -3,7 +3,7 @@
 import unittest
 import mock
 
-import rosplan_pytools.controller.knowledge_base as kb
+import rosplan_pytools.rosplan.controller.knowledge_base as kb
 
 from rosplan_knowledge_msgs.srv import GetInstanceServiceResponse
 from rosplan_knowledge_msgs.srv import KnowledgeUpdateServiceResponse

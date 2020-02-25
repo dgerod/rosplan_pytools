@@ -1,6 +1,6 @@
 import rospy
 from rosplan_dispatch_msgs.msg import ActionDispatch
-from rosplan_pytools.common.utils import dict_to_keyval
+from rosplan_pytools.rosplan.common.utils import dict_to_keyval
 
 _action_dispatch_publisher = None
 

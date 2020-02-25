@@ -1,13 +1,13 @@
 
 from __future__ import absolute_import
+from typing import List
 import uuid
 import rospy
-from rosplan_pytools.common import message_converter
 
 
-class RosServerConnection(object):
+class RosParamsConnection(object):
 
-    def __init__(self, prefix='scene_database'):
+    def __init__(self, prefix):
 
         self._param_prefix = prefix
 
@@ -27,50 +27,51 @@ class RosServerConnection(object):
         self._set_num_elements(0)
 
     def num_elements(self):
+        # type: () -> int
 
         return self._get_num_elements()
 
-    def add_element(self, name, message, metadata=''):
+    def add_element(self, name, element):
+        # type: (str, dict) -> bool
 
         key, id_ = self._find_element_by_name(name)
-        if key != "":
+        if key != '':
             return False
 
-        msg_value = message_converter.convert_ros_message_to_dictionary(message)
-        element = {'name': name, 'metadata': metadata, 'uuid': str(uuid.uuid4()),
-                   'msg_type': message.__class__._type,'msg_value': msg_value}
+        data = element
+        data['name'] = name
+        data['uuid'] = str(uuid.uuid4())
 
         id_ = self._get_num_elements() + 1
-        rospy.set_param(self._create_key('elements/' + str(id_)), element)
+        rospy.set_param(self._create_key('elements/' + str(id_)), data)
 
         self._set_num_elements(self._get_num_elements() + 1)
 
         return True
 
-    def update_element(self, name, message, metadata=''):
+    def update_element(self, name, element):
+        # type: (str, dict) -> bool
+
+        success = False
 
         key, id_ = self._find_element_by_name(name)
-        if key == "":
-            return False
+        if key != '':
 
-        element = rospy.get_param(key, dict())
-        if not element or element['msg_type'] != message._type:
-            return False
+            data = rospy.get_param(key, dict())
 
-        if metadata == '':
-            metadata = element['metadata']
+            updated_element = element
+            updated_element['name'] = data['name']
+            updated_element['uuid'] = data['uuid']
 
-        msg_value = message_converter.convert_ros_message_to_dictionary(message)
-        updated_element = {'name': name, 'metadata': metadata, 'uuid': element['uuid'],
-                           'msg_type': element['msg_type'], 'msg_value': msg_value}
-        rospy.set_param(key, updated_element)
+            rospy.set_param(key, updated_element)
+            success = True
 
-        return True
+        return success
 
     def remove_element(self, name):
+        # type: (str) -> bool
 
         key, id_ = self._find_element_by_name(name)
-
         if key == "":
             return False
 
@@ -93,30 +94,32 @@ class RosServerConnection(object):
         return True
 
     def element_exists(self, name):
+        # type: (str) -> bool
 
         key, id_ = self._find_element_by_name(name)
         return key != ''
 
     def get_element(self, name):
+        # type: (str) -> dict
+
+        element = {}
 
         key, id_ = self._find_element_by_name(name)
-        if key == '':
-            return False, ()
 
-        element = rospy.get_param(key, dict())
-        if element:
-            return True, \
-                   (message_converter.convert_dictionary_to_ros_message(element['msg_type'],
-                                                                        element['msg_value'],
-                                                                        'message'),
-                    element['metadata'],
-                    element['uuid'])
-        else:
-            return False, ()
+        if key != '':
+            data = rospy.get_param(key, dict())
+
+            element = data
+            del element['name']
+            del element['uuid']
+
+        return element
 
     def get_all_elements(self):
+        # type: () -> List[dict]
 
         elements = list()
+
         for edx in range(0, self._get_num_elements()):
 
             id_ = edx + 1
@@ -124,14 +127,13 @@ class RosServerConnection(object):
 
             if rospy.has_param(key):
 
-                name = rospy.get_param(key + '/name')
-                metadata = rospy.get_param(key + '/metadata')
-                msg_type = rospy.get_param(key + '/msg_type')
-                msg_value = rospy.get_param(key + '/msg_value')
-                uuid_ = rospy.get_param(key + '/uuid')
+                data = rospy.get_param(key)
 
-                message = message_converter.convert_dictionary_to_ros_message(msg_type, msg_value, 'message')
-                elements.append((name, message, metadata, uuid_))
+                element = data
+                del element['name']
+                del element['uuid']
+
+                elements.append(element)
 
             else:
                 raise RuntimeError('Data stored is inconsistent.')
@@ -139,17 +141,24 @@ class RosServerConnection(object):
         return elements
 
     def _create_key(self, name):
+        # type: (str) -> str
+
         return "/" + self._param_prefix + '/' + name
 
     def _get_num_elements(self):
+        # type: () -> int
+
         return rospy.get_param(self._create_key('num_elements'), 0)
 
     def _set_num_elements(self, number):
+        # type: (int) -> None
+
         if number < 0:
             number = 0
         return rospy.set_param(self._create_key('num_elements'), number)
 
     def _find_element_by_name(self, name):
+        # type: (name) -> (str, int)
 
         found = False
         element_key = ""
@@ -167,17 +176,3 @@ class RosServerConnection(object):
             element_id = -1
 
         return element_key, element_id
-
-    # def _replace_types_in_dictionary(dictionary):
-    #
-    #     for k, v in dictionary.iteritems():
-    #         if type(v) is dict:
-    #             replace_types_in_dictionary(dictionary[k])
-    #         else:
-    #             if type(v) is float64:
-    #                 dictionary[k] = float(v)
-    #
-    #     return dictionary
-    #
-    # print msg_value
-    # msg_value = replace_types_in_dictionary(msg_value)

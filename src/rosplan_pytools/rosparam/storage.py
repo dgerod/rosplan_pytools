@@ -3,8 +3,8 @@ import rospy
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
 
-from rosparam_storage.common.element import StorageElement
-from rosparam_storage.common.service_names import ServiceNames
+from rosplan_pytools.rosparam.common.element import StorageElement
+from rosplan_pytools.rosparam.common.service_names import ServiceNames
 
 _services = {}
 
@@ -74,7 +74,7 @@ def list_elements():
 
     keys = _services[ServiceNames.RETRIEVE_ELEMENTS]().keys
     for k in keys:
-        elements.append(StorageElement.from_string(k))
+        elements.append(StorageElement.deserialize(k))
 
     return elements
 
@@ -85,19 +85,19 @@ def add_element(key, element):
     if not isinstance(key, str) or not isinstance(element, StorageElement):
         raise TypeError
 
-    value = StorageElement.to_string(element)
+    value = StorageElement.serialize(element)
     NO_METADATA = ''
 
     return _services[ServiceNames.ADD_ELEMENT](key, NO_METADATA, value).success
 
 
 def update_element(key, element):
-    # type: (str, StorageElement) -> bool
+    # type: (str, StorageElement)  -> bool
 
     if not isinstance(key, str) or not isinstance(element, StorageElement):
         raise TypeError
 
-    value = StorageElement.to_string(element)
+    value = StorageElement.serialize(element)
     NO_METADATA = ''
 
     return _services[ServiceNames.UPDATE_ELEMENT](key, NO_METADATA, value).success
@@ -113,7 +113,7 @@ def retrieve_element(key):
 
     response = _services[ServiceNames.FIND_ELEMENT](key)
     if response.success:
-        element = StorageElement.from_string(response.value)
+        element = StorageElement.deserialize(response.value)
 
     return element
 

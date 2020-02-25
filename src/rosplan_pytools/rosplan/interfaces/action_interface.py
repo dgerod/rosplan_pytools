@@ -7,8 +7,8 @@ import inspect
 import rospy
 from rosplan_dispatch_msgs.msg import ActionFeedback, ActionDispatch
 from rosplan_knowledge_msgs.srv import GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
-from rosplan_pytools.controller import knowledge_base as kb
-from rosplan_pytools.common.utils import keyval_to_dict, dict_to_keyval
+from rosplan_pytools.rosplan.controller import knowledge_base as kb
+from rosplan_pytools.rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 
 DEFAULT_DISPATCH_TOPIC_NAME = "kcl_rosplan/action_dispatch"

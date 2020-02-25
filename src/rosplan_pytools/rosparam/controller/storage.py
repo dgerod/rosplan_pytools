@@ -4,8 +4,24 @@ import json
 
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements
-from rosparam_storage.common.service_names import ServiceNames
-from rosparam_storage.controller.ros_server import RosParamsServerConnection
+from rosplan_pytools.rosparam.common.service_names import ServiceNames
+from rosplan_pytools.rosparam.controller.connection import RosParamsConnection
+
+"""
+Conversions:
+    [client] --- str --> [storage] --- dict --> [ros params]
+    [client] <-- str --- [storage] <-- dict --- [ros params]
+"""
+
+
+def _rosparam_to_string(element):
+    # type: (dict) -> str
+    return json.dumps(element)
+
+
+def _string_to_rosparam(element):
+    # type: (str) -> dict
+    return json.loads(element)
 
 
 class RosParamsStorageServer(object):
@@ -13,7 +29,7 @@ class RosParamsStorageServer(object):
     def __init__(self, storage_name='my_storage'):
 
         self._lock = Lock()
-        self._ros_server = RosParamsServerConnection(storage_name)
+        self._ros_server = RosParamsConnection(storage_name)
         self._start_services(storage_name)
 
     def _start_services(self, prefix):
@@ -64,7 +80,7 @@ class RosParamsStorageServer(object):
 
         success = False
         name = request.key
-        element = json.loads(request.value)
+        element = _string_to_rosparam(request.value)
 
         with self._lock:
             success = self._ros_server.add_element(name, element)
@@ -83,7 +99,7 @@ class RosParamsStorageServer(object):
         with self._lock:
             element = self._ros_server.get_element(name)
             if len(element.keys()) > 0:
-                value = json.dumps(element)
+                value = _rosparam_to_string(element)
 
         return success, NO_METADATA, value
 
@@ -93,7 +109,7 @@ class RosParamsStorageServer(object):
 
         success = False
         name = request.key
-        element = json.loads(request.value)
+        element = _string_to_rosparam(request.value)
 
         with self._lock:
             success = self._ros_server.update_element(name, element)
@@ -121,7 +137,7 @@ class RosParamsStorageServer(object):
         with self._lock:
             elements = self._ros_server.get_all_elements()
             for e in elements:
-                keys.append(json.dumps(e))
+                keys.append(_rosparam_to_string(e))
 
         return True, keys
 
@@ -137,7 +153,7 @@ def start_node(arguments):
         RosParamsStorageServer(DEFAULT_DB_NAME)
 
         rospy.set_param(DEFAULT_DB_NAME + '/is_ready', True)
-        rospy.loginfo("[RPpt][ADB] RosParams Storage: Ready to receive")
+        rospy.loginfo("[RPpt][RP] RosParams Storage: Ready to receive")
         rospy.spin()
 
     except rospy.ROSInterruptException:

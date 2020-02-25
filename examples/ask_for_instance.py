@@ -3,8 +3,8 @@
 
 from __future__ import print_function
 import rospy
-from rosplan_pytools.controller import knowledge_base as kb
-from rosplan_pytools.controller import scene_database as sdb
+from rosplan_pytools.rosplan.controller import knowledge_base as kb
+from rosplan_pytools.rosplan.controller import scene_database as sdb
 from geometry_msgs.msg import Pose, Point, Quaternion
 
 

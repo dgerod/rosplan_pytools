@@ -1,10 +1,10 @@
 from threading import Lock
 import rospy
 
-from rosplan_pytools.controller.common.sdb_element import Element
-from rosplan_pytools.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
-from rosplan_pytools.controller.nodes.scene_database.service_names import ServiceNames
-from rosplan_pytools.controller.nodes.scene_database.ros_server_connection import RosServerConnection
+from rosplan_pytools.rosplan.controller.common.sdb_element import Element
+from rosplan_pytools.rosplan.controller.common.sdb_element_converter import sdb_element_to_string, string_to_sdb_element
+from rosplan_pytools.rosplan.controller.nodes.scene_database.service_names import ServiceNames
+from rosplan_pytools.rosplan.controller.nodes.scene_database.ros_server_connection import RosServerConnection
 
 from rosplan_pytools.srv import DiagnosticsDB, ResetDB
 from rosplan_pytools.srv import AddElement, FindElement, UpdateElement, RemoveElement, RetrieveElements

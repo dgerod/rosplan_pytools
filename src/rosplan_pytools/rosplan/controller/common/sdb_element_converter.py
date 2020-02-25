@@ -1,6 +1,6 @@
 import json
-from rosplan_pytools.common import message_converter
-from rosplan_pytools.controller.common.sdb_element import Element
+from rosplan_pytools.rosparam.common import ros_message_converter
+from rosplan_pytools.rosplan.controller.common.sdb_element import Element
 
 
 def sdb_element_to_string(element):
@@ -9,7 +9,7 @@ def sdb_element_to_string(element):
         raise TypeError
 
     dict_ = {'msg_type': element.type(),
-             'msg_value': message_converter.convert_ros_message_to_dictionary(element.value())}
+             'msg_value': ros_message_converter.convert_ros_message_to_dictionary(element.value())}
 
     value = json.dumps(dict_)
     return element.metadata(), value
@@ -21,7 +21,7 @@ def string_to_sdb_element(metadata, value):
         raise TypeError
 
     dict_ = json.loads(value)
-    msg_value = message_converter.convert_dictionary_to_ros_message(dict_['msg_type'],
+    msg_value = ros_message_converter.convert_dictionary_to_ros_message(dict_['msg_type'],
                                                                     dict_['msg_value'],
                                                                     'message')
     return Element(msg_value, metadata)
