@@ -1,0 +1,63 @@
+
+@startuml scene_databse_components
+
+actor "User"
+database "ROSServer"
+
+package "rosplan_pytools" {
+
+    [User] --> [kb]
+    [User] --> [ps]
+    [User] --> [sdb]
+
+    package "controller" {
+    
+        [kb]
+        [ps]
+        [sdb]
+        
+        cloud "SDB Services"
+
+        package "node" {
+            [Scene Database]
+            [ROSServer Connection]
+        }
+        
+    }
+    
+    [sdb] --> [SDB Services]
+    [SDB Services]--> [Scene Database]
+    [Scene Database] --> [ROSServer Connection]
+
+    note right of [Scene Database] 
+        At this moment only accepts ROS messages 
+        as element value. This is a serializable issue
+        that needs to be solved.
+    end note
+    
+}
+
+package "ROSPLan" {
+
+    cloud "KB Communications"
+    [Knowledge Base]
+    
+    cloud "PS Communications"
+    [Planning System]
+
+    [kb] --> [KB Communications]
+    [KB Communications] --> [Knowledge Base]
+    [ps] --> [PS Communications]
+    [PS Communications] --> [Planning System]
+
+}
+
+[ROSServer Connection] --> [ROSServer]
+
+note right of ROSServer 
+    1-to-1 correspondence between its types 
+    and YAML types.
+end note
+
+
+@enduml
