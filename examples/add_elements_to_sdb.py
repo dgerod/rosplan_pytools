@@ -9,8 +9,6 @@ from std_msgs.msg import String
 
 def main():
 
-    print("nadfkasdjfla")
-
     sdb.initialize()
     sdb.reset()
 

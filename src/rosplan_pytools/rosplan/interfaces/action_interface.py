@@ -11,8 +11,9 @@ from rosplan_pytools.rosplan.controller import knowledge_base as kb
 from rosplan_pytools.rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 
-DEFAULT_DISPATCH_TOPIC_NAME = "kcl_rosplan/action_dispatch"
-DEFAULT_FEEDBACK_TOPIC_NAME = "kcl_rosplan/action_feedback"
+DEFAULT_DISPATCH_TOPIC_NAME = "/rosplan_plan_dispatcher/action_dispatch"
+DEFAULT_FEEDBACK_TOPIC_NAME = "/rosplan_plan_dispatcher/action_feedback"
+
 
 feedback = None
 action_ids = {}
