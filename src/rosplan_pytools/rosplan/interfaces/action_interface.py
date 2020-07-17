@@ -11,9 +11,9 @@ from rosplan_pytools.rosplan.controller import knowledge_base as kb
 from rosplan_pytools.rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 
-DEFAULT_DISPATCH_TOPIC_NAME = "/rosplan_plan_dispatcher/action_dispatch"
-DEFAULT_FEEDBACK_TOPIC_NAME = "/rosplan_plan_dispatcher/action_feedback"
-
+DEFAULT_DISPATCH_TOPIC_NAME = "/rosplan/dispatching/action_dispatch"
+DEFAULT_FEEDBACK_TOPIC_NAME = "/rosplan/dispatching/action_feedback"
+DEFAULT_KB_NODE_NAME = "/rosplan_knowledge_base"
 
 feedback = None
 action_ids = {}
@@ -126,10 +126,10 @@ def start_actions(dispatch_topic_name=None,
 
     global feedback
 
-    feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
-    feedback = rospy.Publisher(feedback_topic_name, ActionFeedback, queue_size=10)
     dispatch_topic_name = dispatch_topic_name or DEFAULT_DISPATCH_TOPIC_NAME
     rospy.Subscriber(dispatch_topic_name, ActionDispatch, _action_receiver)
+    feedback_topic_name = feedback_topic_name or DEFAULT_FEEDBACK_TOPIC_NAME
+    feedback = rospy.Publisher(feedback_topic_name, ActionFeedback, queue_size=10)
 
     rospy.loginfo("[RPpt][AIF] Started listening for planner actions")
     if is_blocked:
@@ -255,19 +255,16 @@ class CheckActionAndProcessEffects(object):
     
     NOTE: Based on RPActionInterface class of 'ROSPlan/rosplan_planning_system.
     """
-    def __init__(self, action_name, prefix="/kcl_rosplan"):
-        self.services = {}
+    def __init__(self, action_name, kb_node_name=None):
 
-        rospy.wait_for_service(prefix + "/get_domain_operator_details")
-        self.services["get_domain_operator_details"] = \
-            rospy.ServiceProxy(prefix + "/get_domain_operator_details",
-                               GetDomainOperatorDetailsService)
-
-        rospy.wait_for_service(prefix + "/get_domain_predicate_details")
-        self.services["get_domain_predicate_details"] = \
-            rospy.ServiceProxy(prefix + "/get_domain_predicate_details",
+        self._services = {}
+        prefix = kb_node_name or DEFAULT_KB_NODE_NAME
+        self._services["get_domain_predicate_details"] = \
+            rospy.ServiceProxy(prefix + "/domain/predicate_details",
                                GetDomainPredicateDetailsService)
-
+        self._services["get_domain_operator_details"] = \
+            rospy.ServiceProxy(prefix + "/domain/operator_details",
+                               GetDomainOperatorDetailsService)
         self.op = None
         self.params = None
 
@@ -282,7 +279,7 @@ class CheckActionAndProcessEffects(object):
         #
         # ---
 
-        res = self.services["get_domain_operator_details"](action_name)
+        res = self._services["get_domain_operator_details"](action_name)
         self.op = res.op
         self.params = res.op.formula
 
@@ -323,7 +320,7 @@ class CheckActionAndProcessEffects(object):
         self.predicates = {}
         for predicate_name in predicate_collection:
             if predicate_name not in self.predicates:
-                res = self.services["get_domain_predicate_details"](predicate_name)
+                res = self._services["get_domain_predicate_details"](predicate_name)
                 self.predicates[predicate_name] = res.predicate
 
     def _prepare_predicates(self):
