@@ -9,7 +9,8 @@ from collections import OrderedDict
 import rospy
 from std_srvs.srv import Empty
 from rosplan_knowledge_msgs.srv import \
-    KnowledgeUpdateService, KnowledgeQueryService, \
+    KnowledgeUpdateService, KnowledgeUpdateServiceRequest, \
+    KnowledgeQueryService, \
     GetInstanceService, GetAttributeService, GetDomainAttributeService, \
     GetDomainTypeService, GetDomainOperatorService, \
     GetDomainOperatorDetailsService, GetDomainPredicateDetailsService
@@ -17,26 +18,25 @@ from rosplan_knowledge_msgs.msg import KnowledgeItem
 from rosplan_pytools.rosplan.common.utils import keyval_to_dict, dict_to_keyval
 
 
-DEFAULT_SERVICE_PREFIX = "/rosplan_knowledge_base"
+DEFAULT_KB_NODE_NAME = "/rosplan_knowledge_base"
 
-KB_UPDATE_ADD_KNOWLEDGE = 0 # KnowledgeUpdateService().ADD_KNOWLEDGE
-KB_UPDATE_ADD_GOAL = 1 # KnowledgeUpdateService().ADD_GOAL
-KB_UPDATE_RM_KNOWLEDGE = 2 # KnowledgeUpdateService().REMOVE_KNOWLEDGE
-KB_UPDATE_RM_GOAL = 3 # KnowledgeUpdateService().REMOVE_GOAL
+KB_UPDATE_ADD_KNOWLEDGE = KnowledgeUpdateServiceRequest.ADD_KNOWLEDGE
+KB_UPDATE_ADD_GOAL = KnowledgeUpdateServiceRequest.ADD_GOAL
+KB_UPDATE_RM_KNOWLEDGE = KnowledgeUpdateServiceRequest.REMOVE_KNOWLEDGE
+KB_UPDATE_RM_GOAL = KnowledgeUpdateServiceRequest.REMOVE_GOAL
 
-KB_ITEM_INSTANCE = KnowledgeItem().INSTANCE
-KB_ITEM_FACT = KnowledgeItem().FACT
-KB_ITEM_FUNCTION = KnowledgeItem().FUNCTION
+KB_ITEM_INSTANCE = KnowledgeItem.INSTANCE
+KB_ITEM_FACT = KnowledgeItem.FACT
 
 
 _services = {}
 
 
-def _wait_until_kb_is_ready(service_naem):
-    rospy.wait_for_service(service_naem)
+def _wait_until_kb_is_ready(service_name):
+    rospy.wait_for_service(service_name)
 
 
-def _initialize_kb_services(prefix):
+def _initialize_services(prefix):
 
     global _services
 
@@ -50,7 +50,7 @@ def _initialize_kb_services(prefix):
         rospy.ServiceProxy(prefix + "/domain/operators",
                            GetDomainOperatorService)
     _services["get_domain_operator_details"] = \
-        rospy.ServiceProxy(prefix + "/domain/operators_details",
+        rospy.ServiceProxy(prefix + "/domain/operator_details",
                            GetDomainOperatorDetailsService)
     _services["get_domain_types"] = \
         rospy.ServiceProxy(prefix + "/domain/types",
@@ -116,14 +116,32 @@ def _make_instance(type_name, item_name):
     return kb_item
 
 
-def _make_predicate(type_name, **kwargs):
+def _make_predicate(type_name, parameters):
 
     new_type_name, is_negative = _is_predicate_negative(type_name)
     kb_item = KnowledgeItem()
     kb_item.knowledge_type = KB_ITEM_FACT
     kb_item.is_negative = is_negative
     kb_item.attribute_name = new_type_name
-    kb_item.values = dict_to_keyval(kwargs)
+    kb_item.values = dict_to_keyval(parameters)
+    return kb_item
+
+
+def _make_kb_item(*args, **kwargs):
+
+    if len(args) == 1 and isinstance(args[0], KnowledgeItem):
+        kb_item = args[0]
+
+    elif len(args) == 2 and isinstance(args[0], str) \
+            and isinstance(args[1], OrderedDict):
+        type_name = args[0]
+        parameters = args[1]
+        kb_item = _make_predicate(type_name, parameters)
+
+    else:
+        type_name = args[0]
+        kb_item = _make_predicate(type_name, kwargs)
+
     return kb_item
 
 
@@ -132,9 +150,9 @@ def _instance_exists(item_name):
     return item_name in instance_names
 
 
-def initialize(prefix=None):
-    service_prefix = prefix or DEFAULT_SERVICE_PREFIX
-    _initialize_kb_services(service_prefix)
+def initialize(kb_node_name=None):
+    service_prefix = kb_node_name or DEFAULT_KB_NODE_NAME
+    _initialize_services(service_prefix)
 
 
 def exist_instance(item):
@@ -184,20 +202,14 @@ def remove_all_instances():
         remove_instance(item_name, type_name)
 
 
-def add_predicate(type_name, **kwargs):
+def add_predicate(*args, **kwargs):
+    kb_item = _make_kb_item(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE, kb_item).success
 
-    if isinstance(type_name, KnowledgeItem):
-        return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE, type_name).success
-    else:
-        return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE,
-                                                  _make_predicate(type_name, **kwargs)).success
 
-def remove_predicate(type_name, **kwargs):
-    if isinstance(type_name, KnowledgeItem):
-        return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE, type_name).success
-    else:
-        return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE,
-                                                  _make_predicate(type_name, **kwargs)).success
+def remove_predicate(*args, **kwargs):
+    kb_item = _make_kb_item(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE, kb_item).success
 
 
 def list_predicates():
@@ -210,20 +222,14 @@ def remove_all_predicates():
         remove_predicate(predicate)
 
 
-def add_goal(type_name, **kwargs):
-    if isinstance(type_name, KnowledgeItem):
-        return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL, type_name).success
-    else:
-        return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL,
-                                                  _make_predicate(type_name, **kwargs)).success
+def add_goal(*args, **kwargs):
+    kb_item = _make_kb_item(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL, kb_item).success
 
 
-def remove_goal(type_name, **kwargs):
-    if isinstance(type_name, KnowledgeItem):
-        return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL, type_name).success
-    else:
-        return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL,
-                                                  _make_predicate(type_name, **kwargs)).success
+def remove_goal(*args, **kwargs):
+    kb_item = _make_kb_item(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL, kb_item).success
 
 
 def list_goals():
@@ -243,3 +249,54 @@ def reset():
 def remove_all():
     _services["clear_knowledge"]()
     remove_all_predicates()
+
+
+def add_predicate_2(type_name, **kwargs):
+
+    if isinstance(type_name, KnowledgeItem):
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE, type_name).success
+    else:
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE,
+                                                  _make_predicate(type_name, kwargs)).success
+
+
+def add_predicate_3(type_name, parameters=OrderedDict()):
+
+    if isinstance(type_name, str) and isinstance(parameters, OrderedDict):
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE,
+                                                  _make_predicate(type_name, parameters)).success
+
+    return False
+
+
+def remove_predicate_2(*args, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE, type_name).success
+    else:
+        return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE,
+                                                  _make_predicate(type_name, kwargs)).success
+
+
+def add_goal_2(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL, type_name).success
+    else:
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL,
+                                                  _make_predicate(type_name, kwargs)).success
+
+
+def add_goal_3(type_name, parameters=OrderedDict()):
+    if isinstance(type_name, str) and isinstance(parameters, OrderedDict):
+        return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL,
+                                                  _make_predicate(type_name, parameters)).success
+    else:
+        return False
+
+
+def remove_goal_2(type_name, **kwargs):
+    if isinstance(type_name, KnowledgeItem):
+        return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL, type_name).success
+    else:
+        return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL,
+                                                  _make_predicate(type_name, kwargs)).success
+
