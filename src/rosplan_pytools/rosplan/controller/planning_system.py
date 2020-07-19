@@ -5,7 +5,7 @@
 
 import rospy
 from std_srvs.srv import Empty
-
+from rosplan_dispatch_msgs.srv import DispatchService
 
 DEFAULT_PROBLEM_NODE_NAME = "/rosplan_problem_generator"
 DEFAULT_PLANNER_NODE_NAME = "/rosplan_plan_generator"
@@ -15,7 +15,7 @@ DEFAULT_DISPATCHER_NODE_NAME = "/rosplan_plan_dispatcher"
 _services = {}
 
 
-def _wait_until_node_is_ready(service_name):
+def _wait_until_service_is_ready(service_name):
     rospy.wait_for_service(service_name)
 
 
@@ -26,8 +26,7 @@ def _initialize_problem_services(prefix):
     service_name = prefix + "/problem_generation_server"
     _services["generate_problem"] = \
         rospy.ServiceProxy(service_name, Empty)
-
-    _wait_until_node_is_ready(service_name)
+    _wait_until_service_is_ready(service_name)
 
 
 def _initialize_planner_services(prefix):
@@ -37,8 +36,7 @@ def _initialize_planner_services(prefix):
     service_name = prefix + "/planning_server"
     _services["generate_plan"] = \
         rospy.ServiceProxy(service_name, Empty)
-
-    _wait_until_node_is_ready(service_name)
+    _wait_until_service_is_ready(service_name)
 
 
 def _initialize_parser_services(prefix):
@@ -48,8 +46,7 @@ def _initialize_parser_services(prefix):
     service_name = prefix + "/parse_plan"
     _services["parse_plan"] = \
         rospy.ServiceProxy(service_name, Empty)
-
-    _wait_until_node_is_ready(service_name)
+    _wait_until_service_is_ready(service_name)
 
 
 def _initialize_dispatcher_services(prefix):
@@ -58,13 +55,13 @@ def _initialize_dispatcher_services(prefix):
 
     service_name = prefix + "/dispatch_plan"
     _services["dispatch_plan"] = \
-        rospy.ServiceProxy(service_name, Empty)
+        rospy.ServiceProxy(service_name, DispatchService)
+    _wait_until_service_is_ready(service_name)
 
-    service_name = prefix + "/cancel_plan"
+    service_name = prefix + "/cancel_dispatch"
     _services["cancel_dispatch"] = \
         rospy.ServiceProxy(service_name, Empty)
-
-    _wait_until_node_is_ready(prefix + "/cancel_dispatch")
+    _wait_until_service_is_ready(service_name)
 
 
 def initialize(problem_node_name=None, planner_node_name=None, parser_node_name=None,
