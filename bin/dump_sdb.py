@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-from rosplan_pytools.controller import scene_database as sdb
+from rosplan_pytools.rosplan.controller import scene_database as sdb
 
 
 def main():

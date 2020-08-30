@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 import rospy
-from rosplan_pytools.interfaces.action_interface import *
+from rosplan_pytools.rosplan.interfaces.action_interface import *
 
 
 class DemoSimpleAction(SimpleAction):

@@ -1,5 +1,5 @@
 
-from rosparam_storage.common.element_converter import data_to_element, element_to_data
+from rosplan_pytools.rosparam.common.element_converter import data_to_element, element_to_data
 
 
 class StorageElement(object):
@@ -34,15 +34,15 @@ class StorageElement(object):
         return self.type() == other.type()
 
     @staticmethod
-    def to_string(element):
-        # type: (StorageElement) -> (str, str)
+    def serialize(element):
+        # type: (StorageElement) -> str
         return element_to_data(element)
 
 
     @staticmethod
-    def from_string(metadata, value):
-        # type: (dict) -> (id, StorageElement)
-        return data_to_element(metadata, value)
+    def deserealize(data):
+        # type: (str) -> StorageElement
+        return data_to_element(data)
 
     def clean(self):
         self._metadata = ""

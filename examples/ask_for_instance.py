@@ -3,8 +3,8 @@
 
 from __future__ import print_function
 import rospy
-from rosplan_pytools.controller import knowledge_base as kb
-from rosplan_pytools.controller import scene_database as sdb
+from rosplan_pytools.rosplan.controller import knowledge_base as kb
+from rosplan_pytools.rosplan.controller import scene_database as sdb
 from geometry_msgs.msg import Pose, Point, Quaternion
 
 
@@ -26,20 +26,23 @@ def prepare_instances():
     kb.add_instance("p4", "place")
     sdb.add_element("p4", sdb.Element(p, "place"))
 
+    print("instances: ", kb.list_instances())
+    print("predicates: ", kb.list_predicates())
+
 
 def retrieve_instances():
 
     success, p1 = sdb.get_element("p1")
-    print("instance:\n", p1.value(), p1.type(), p1.category())
+    print("instance:\n", p1.value(), p1.type())
 
     success, p2 = sdb.get_element("p2")
-    print("instance:\n", p2.value(), p2.type(), p2.category())
+    print("instance:\n", p2.value(), p2.type())
 
     success, p3 = sdb.get_element("p3")
-    print("instance:\n", p3.value(), p3.type(), p3.category())
+    print("instance:\n", p3.value(), p3.type())
 
     success, p4 = sdb.get_element("p4")
-    print("instance:\n", p4.value(), p4.type(), p4.category())
+    print("instance:\n", p4.value(), p4.type())
 
 
 def main():

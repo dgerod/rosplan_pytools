@@ -5,7 +5,7 @@ from __future__ import print_function
 import sys
 import os
 import rospy
-from rosplan_pytools.controller.nodes.scene_database import scene_database
+from rosplan_pytools.rosplan.controller.nodes.scene_database import scene_database
 
 
 DEFAULT_NODE_NAME = "scene_database"
