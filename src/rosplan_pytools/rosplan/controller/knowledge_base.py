@@ -139,8 +139,20 @@ def _make_kb_item(*args, **kwargs):
         kb_item = _make_predicate(type_name, parameters)
 
     else:
-        type_name = args[0]
-        kb_item = _make_predicate(type_name, kwargs)
+        #  This option of pass parameters as kwargs could not be used in python 2.7
+        # due to a bug in ROSPlan, see:
+        #   - https://github.com/KCL-Planning/ROSPlan/issues/253
+        #   - https://github.com/KCL-Planning/ROSPlan/issues/258
+        #  However, in python 3 this work because dictionary used by kwargs is an
+        # OrderedDict instead a normal Dict.
+        #
+        # type_name = args[0]
+        # kb_item = _make_predicate(type_name, kwargs)
+
+        message = ("Parameters should be passed as OrderedDict instead as kwargs, due to a bug in ROSPlan. See:\n"
+                   " - https://github.com/KCL-Planning/ROSPlan/issues/253\n"
+                   " - https://github.com/KCL-Planning/ROSPlan/issues/253")
+        raise ValueError(message)
 
     return kb_item
 
