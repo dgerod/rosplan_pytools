@@ -7,6 +7,7 @@ import rospy
 from std_srvs.srv import Empty
 from rosplan_dispatch_msgs.srv import DispatchService
 
+
 DEFAULT_PROBLEM_NODE_NAME = "/rosplan_problem_generator"
 DEFAULT_PLANNER_NODE_NAME = "/rosplan_plan_generator"
 DEFAULT_PARSER_NODE_NAME = "/rosplan_plan_parser"
@@ -87,10 +88,6 @@ def plan():
     _services["generate_plan"]()
     _services["parse_plan"]()
     _services["dispatch_plan"]()
-
-
-def plan_and_wait():
-    pass
 
 
 def cancel():
