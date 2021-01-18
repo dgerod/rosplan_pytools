@@ -132,6 +132,10 @@ def _make_kb_item(*args, **kwargs):
     if len(args) == 1 and isinstance(args[0], KnowledgeItem):
         kb_item = args[0]
 
+    elif len(args) == 1 and isinstance(args[0], str):
+        type_name = args[0]
+        kb_item = _make_predicate(type_name, kwargs)
+
     elif len(args) == 2 and isinstance(args[0], str) \
             and isinstance(args[1], OrderedDict):
         type_name = args[0]

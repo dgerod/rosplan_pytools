@@ -76,6 +76,8 @@ def _action_receiver(msg):
             else:
                 action.execute(**keyval_to_dict(msg.parameters))
 
+            rospy.loginfo("[RPpt][AIF] action '%s' completed" % action_name)
+
         except Exception as e:
             rospy.logwarn("[RPpt][AIF] action '%s' failed." % msg.name, exc_info=1)
             feedback.publish(ActionFeedback(msg.action_id,
