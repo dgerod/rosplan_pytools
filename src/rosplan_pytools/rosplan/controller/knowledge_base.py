@@ -27,7 +27,7 @@ KB_UPDATE_RM_GOAL = KnowledgeUpdateServiceRequest.REMOVE_GOAL
 
 KB_ITEM_INSTANCE = KnowledgeItem.INSTANCE
 KB_ITEM_FACT = KnowledgeItem.FACT
-
+KB_ITEM_FUNCTION = KnowledgeItem.FUNCTION
 
 _services = {}
 
@@ -56,14 +56,17 @@ def _initialize_services(prefix):
         rospy.ServiceProxy(prefix + "/domain/types",
                            GetDomainTypeService)
 
-    _services["get_current_instances"] = \
+    _services["get_instances"] = \
         rospy.ServiceProxy(prefix + "/state/instances",
                            GetInstanceService)
-    _services["get_current_goals"] = \
+    _services["get_goals"] = \
         rospy.ServiceProxy(prefix + "/state/goals",
                            GetAttributeService)
     _services["get_propositions"] = \
         rospy.ServiceProxy(prefix + "/state/propositions",
+                           GetAttributeService)
+    _services["get_functions"] = \
+        rospy.ServiceProxy(prefix + "/state/functions",
                            GetAttributeService)
 
     _services["query_knowledge_base"] = \
@@ -107,7 +110,7 @@ def _is_predicate_negative(name):
     return new_name, is_negative
 
 
-def _make_instance(type_name, item_name):
+def _make_kb_item_from_instance(type_name, item_name):
 
     kb_item = KnowledgeItem()
     kb_item.knowledge_type = KB_ITEM_INSTANCE
@@ -116,7 +119,7 @@ def _make_instance(type_name, item_name):
     return kb_item
 
 
-def _make_predicate(type_name, parameters):
+def _make_fact(type_name, parameters):
 
     new_type_name, is_negative = _is_predicate_negative(type_name)
     kb_item = KnowledgeItem()
@@ -127,20 +130,64 @@ def _make_predicate(type_name, parameters):
     return kb_item
 
 
-def _make_kb_item(*args, **kwargs):
+def _make_kb_item_from_predicate(*args, **kwargs):
 
     if len(args) == 1 and isinstance(args[0], KnowledgeItem):
         kb_item = args[0]
 
     elif len(args) == 1 and isinstance(args[0], str):
         type_name = args[0]
-        kb_item = _make_predicate(type_name, kwargs)
+        kb_item = _make_fact(type_name, kwargs)
 
     elif len(args) == 2 and isinstance(args[0], str) \
             and isinstance(args[1], OrderedDict):
         type_name = args[0]
         parameters = args[1]
-        kb_item = _make_predicate(type_name, parameters)
+        kb_item = _make_fact(type_name, parameters)
+
+    else:
+        #  This option of pass parameters as kwargs could not be used in python 2.7
+        # due to a bug in ROSPlan, see:
+        #   - https://github.com/KCL-Planning/ROSPlan/issues/253
+        #   - https://github.com/KCL-Planning/ROSPlan/issues/258
+        #  However, in python 3 this work because dictionary used by kwargs is an
+        # OrderedDict instead a normal Dict.
+        #
+        # type_name = args[0]
+        # kb_item = _make_predicate(type_name, kwargs)
+
+        message = ("Parameters should be passed as OrderedDict instead as kwargs, due to a bug in ROSPlan. See:\n"
+                   " - https://github.com/KCL-Planning/ROSPlan/issues/253\n"
+                   " - https://github.com/KCL-Planning/ROSPlan/issues/253")
+        raise ValueError(message)
+
+    return kb_item
+
+
+def _make_function(type_name, parameters, value):
+
+    new_type_name, is_negative = _is_predicate_negative(type_name)
+    kb_item = KnowledgeItem()
+    kb_item.knowledge_type = KB_ITEM_FUNCTION
+    kb_item.is_negative = is_negative
+    kb_item.attribute_name = new_type_name
+    kb_item.values = dict_to_keyval(parameters)
+    kb_item.function_value = value
+    return kb_item
+
+
+def _make_kb_item_from_function(*args, **kwargs):
+
+    if len(args) == 1 and isinstance(args[0], KnowledgeItem):
+        kb_item = args[0]
+
+    elif (len(args) == 3 and isinstance(args[0], str)
+            and isinstance(args[1], OrderedDict)
+            and isinstance(args[2], float)):
+        type_name = args[0]
+        parameters = args[1]
+        value = args[2]
+        kb_item = _make_function(type_name, parameters, value)
 
     else:
         #  This option of pass parameters as kwargs could not be used in python 2.7
@@ -162,7 +209,7 @@ def _make_kb_item(*args, **kwargs):
 
 
 def _instance_exists(item_name):
-    instance_names = _services["get_current_instances"]("").instances
+    instance_names = _services["get_instances"]("").instances
     return item_name in instance_names
 
 
@@ -181,7 +228,7 @@ def add_instance(item_name, type_name):
         raise TypeError
 
     return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE,
-                                              _make_instance(type_name, item_name)).success
+                                              _make_kb_item_from_instance(type_name, item_name)).success
 
 
 def remove_instance(item_name, type_name):
@@ -190,7 +237,7 @@ def remove_instance(item_name, type_name):
         raise TypeError
 
     return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE,
-                                              _make_instance(type_name, item_name)).success
+                                              _make_kb_item_from_instance(type_name, item_name)).success
 
 
 def get_instance_type(item_name):
@@ -200,7 +247,7 @@ def get_instance_type(item_name):
 
     types = _services["get_domain_types"]().types
     for type_name in types:
-        instance_names = _services["get_current_instances"](type_name).instances
+        instance_names = _services["get_instances"](type_name).instances
         if item_name in instance_names:
             return type_name
 
@@ -208,7 +255,7 @@ def get_instance_type(item_name):
 
 
 def list_instances(type_name=""):
-    instance_names = _services["get_current_instances"](type_name).instances
+    instance_names = _services["get_instances"](type_name).instances
     return instance_names
 
 
@@ -219,12 +266,12 @@ def remove_all_instances():
 
 
 def add_predicate(*args, **kwargs):
-    kb_item = _make_kb_item(*args, **kwargs)
+    kb_item = _make_kb_item_from_predicate(*args, **kwargs)
     return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE, kb_item).success
 
 
 def remove_predicate(*args, **kwargs):
-    kb_item = _make_kb_item(*args, **kwargs)
+    kb_item = _make_kb_item_from_predicate(*args, **kwargs)
     return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE, kb_item).success
 
 
@@ -238,18 +285,38 @@ def remove_all_predicates():
         remove_predicate(predicate)
 
 
+def add_function(*args, **kwargs):
+    kb_item = _make_kb_item_from_function(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_ADD_KNOWLEDGE, kb_item).success
+
+
+def remove_function(*args, **kwargs):
+    kb_item = _make_kb_item_from_function(*args, **kwargs)
+    return _services["update_knowledge_base"](KB_UPDATE_RM_KNOWLEDGE, kb_item).success
+
+
+def list_functions():
+    functions = _services["get_functions"]().attributes
+    return functions
+
+
+def remove_all_functions():
+    for function in list_functions():
+        remove_function(function)
+
+
 def add_goal(*args, **kwargs):
-    kb_item = _make_kb_item(*args, **kwargs)
+    kb_item = _make_kb_item_from_predicate(*args, **kwargs)
     return _services["update_knowledge_base"](KB_UPDATE_ADD_GOAL, kb_item).success
 
 
 def remove_goal(*args, **kwargs):
-    kb_item = _make_kb_item(*args, **kwargs)
+    kb_item = _make_kb_item_from_predicate(*args, **kwargs)
     return _services["update_knowledge_base"](KB_UPDATE_RM_GOAL, kb_item).success
 
 
 def list_goals():
-    goals = _services["get_current_goals"]("").attributes
+    goals = _services["get_goals"]("").attributes
     return goals
 
 
@@ -265,3 +332,4 @@ def reset():
 def remove_all():
     _services["clear_knowledge"]()
     remove_all_predicates()
+    remove_all_functions()
