@@ -331,7 +331,7 @@ class CheckActionAndProcessEffects(object):
 
     def validate_parameters(self, arguments):
 
-        rospy.loginfo("[RPpt][CAPE] validate parameters")
+        rospy.loginfo("[RPpt][AIF][CAPE] validate parameters")
 
         # Only check parameters, pre-conditions are not considered
         found = [False] * len(self.params.typed_parameters)
@@ -350,7 +350,7 @@ class CheckActionAndProcessEffects(object):
 
     def apply_effects(self):
 
-        rospy.loginfo("[RPpt][CAPE] apply effects")
+        rospy.loginfo("[RPpt][AIF][CAPE] apply effects")
 
         # Simple start del effects
         for edx, effect in enumerate(self.op.at_start_del_effects):
