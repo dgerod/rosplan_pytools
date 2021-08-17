@@ -1,7 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
 import rospy
 from rosplan_pytools.rosplan.interfaces.action_interface import *
 
