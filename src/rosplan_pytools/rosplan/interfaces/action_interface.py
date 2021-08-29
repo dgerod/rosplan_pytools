@@ -338,8 +338,8 @@ class CheckActionAndProcessEffects(object):
 
         for pdx, parameter in enumerate(self.params.typed_parameters):
             for adx in range(len(arguments)):
-                if parameter.key == arguments.keys()[adx]:
-                    self.bound_params[arguments.keys()[adx]] = arguments.values()[adx]
+                if parameter.key == list(arguments.keys())[adx]:
+                    self.bound_params[list(arguments.keys())[adx]] = list(arguments.values())[adx]
                     found[pdx] = True
                     break
 
