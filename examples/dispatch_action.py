@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from rosplan_pytools.rosplan.controller import action_dispatcher as dispatcher
+from rosplan_pytools.rosplan.helpers import action_dispatcher as dispatcher
 
 
 def main():
@@ -11,9 +11,10 @@ def main():
         rospy.init_node("pytools_dispatch_action")
         dispatcher.initialize()
 
-        name = "demo1"
-        parameters = {"c": "c1", "o": "o1"}
-        dispatcher.send_action(name, **parameters)
+        id_ = 0
+        name = "find_object"
+        parameters = {"c": "bin_2", "o": "gear_4"}
+        dispatcher.send_action(id_, name, parameters)
 
         rospy.spin()
 

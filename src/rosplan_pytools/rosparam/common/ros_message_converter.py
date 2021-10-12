@@ -40,6 +40,7 @@ import rospy
 import re
 import base64
 import sys
+import codecs
 
 python3 = True if sys.hexversion > 0x03000000 else False
 python_to_ros_type_map = {
@@ -54,10 +55,15 @@ python_to_ros_type_map = {
 }
 
 if python3:
-    python_string_types = [str]
+    python_string_types = [str, bytes]
+    python_int_types = [int]
+    python_float_types = [float]
+    python_list_types = [list, tuple]    
 else:
     python_string_types = [str, unicode]
-python_list_types = [list, tuple]
+    python_int_types = [int, long]
+    python_float_types = [float]
+    python_list_types = [list, tuple]
 
 ros_time_types = ['time', 'duration']
 ros_primitive_types = ['bool', 'byte', 'char', 'int8', 'uint8', 'int16',
@@ -70,6 +76,9 @@ list_brackets = re.compile(r'\[[^\]]*\]')
 
 
 def _convert_to_ros_type(field_type, field_value):
+
+    #import pdb; pdb.set_trace()
+
     if is_ros_binary_type(field_type, field_value):
         field_value = _convert_to_ros_binary(field_type, field_value)
     elif field_type in ros_time_types:
@@ -112,8 +121,9 @@ def _convert_to_ros_time(field_type, field_value):
 
 
 def _convert_to_ros_primitive(field_type, field_value):
-    if field_type == "string":
-        field_value = field_value.encode('utf-8')
+    # std_msgs/msg/_String.py always calls encode() on python3, so don't do it here
+    if field_type == "string" and not python3:
+        field_value.encode('utf-8')
     return field_value
 
 
@@ -128,7 +138,7 @@ def _convert_from_ros_type(field_type, field_value):
     elif field_type in ros_time_types:
         field_value = _convert_from_ros_time(field_type, field_value)
     elif field_type in ros_primitive_types:
-        field_value = field_value
+        field_value = _convert_from_ros_primitive(field_type, field_value)
     elif _is_field_type_an_array(field_type):
         field_value = _convert_from_ros_array(field_type, field_value)
     else:
@@ -170,6 +180,9 @@ def _convert_from_ros_time(field_type, field_value):
 
 
 def _convert_from_ros_primitive(field_type, field_value):
+    # std_msgs/msg/_String.py always calls decode() on python3, so don't do it here
+    if field_type == "string" and not python3:
+        field_value = field_value.decode('utf-8')
     return field_value
 
 
@@ -200,6 +213,9 @@ def convert_dictionary_to_ros_message(message_type, dictionary, kind='message'):
         kind = "request"
         ros_message = convert_dictionary_to_ros_message(message_type, dict_message, kind)
     """
+    
+    #import pdb; pdb.set_trace()
+    
     if kind == 'message':
         message_class = roslib.message.get_message_class(message_type)
         message = message_class()
@@ -234,6 +250,9 @@ def convert_ros_message_to_dictionary(message):
         ros_message = std_msgs.msg.String(data="Hello, Robot")
         dict_message = convert_ros_message_to_dictionary(ros_message)
     """
+
+    #import pdb; pdb.set_trace()
+
     dictionary = {}
     message_fields = _get_message_fields(message)
     for field_name, field_type in message_fields:

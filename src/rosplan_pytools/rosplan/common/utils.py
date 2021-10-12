@@ -14,6 +14,6 @@ def dict_to_keyval(in_dict):
     if in_dict is None:
         return []
     out = []
-    for item in in_dict.iteritems():
+    for item in in_dict.items():
         out.append(KeyValue(*item))
     return out

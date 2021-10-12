@@ -1,11 +1,10 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function
 import rospy
+from geometry_msgs.msg import Pose, Point, Quaternion
 from rosplan_pytools.rosplan.controller import knowledge_base as kb
 from rosplan_pytools.rosplan.controller import scene_database as sdb
-from geometry_msgs.msg import Pose, Point, Quaternion
 
 
 def prepare_instances():
