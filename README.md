@@ -89,9 +89,9 @@ Sometimes you want to tell ROSPlan what to do. To do that, you first need to add
 
 ```
 import rosplan_pytools
-import rosplan_pytools.controller.knowledge_base as kb
-import rosplan_pytools.controller.scene_database as sdb
-import rosplan_pytools.controller.planning_system as ps
+import rosplan_pytools.rosplan.controller.knowledge_base as kb
+import rosplan_pytools.rosplan.controller.scene_database as sdb
+import rosplan_pytools.rosplan.controller.planning_system as ps
   
 rosplan_pytools.init()
   
