@@ -77,8 +77,6 @@ list_brackets = re.compile(r'\[[^\]]*\]')
 
 def _convert_to_ros_type(field_type, field_value):
 
-    #import pdb; pdb.set_trace()
-
     if is_ros_binary_type(field_type, field_value):
         field_value = _convert_to_ros_binary(field_type, field_value)
     elif field_type in ros_time_types:
@@ -213,9 +211,7 @@ def convert_dictionary_to_ros_message(message_type, dictionary, kind='message'):
         kind = "request"
         ros_message = convert_dictionary_to_ros_message(message_type, dict_message, kind)
     """
-    
-    #import pdb; pdb.set_trace()
-    
+
     if kind == 'message':
         message_class = roslib.message.get_message_class(message_type)
         message = message_class()
@@ -250,8 +246,6 @@ def convert_ros_message_to_dictionary(message):
         ros_message = std_msgs.msg.String(data="Hello, Robot")
         dict_message = convert_ros_message_to_dictionary(ros_message)
     """
-
-    #import pdb; pdb.set_trace()
 
     dictionary = {}
     message_fields = _get_message_fields(message)
